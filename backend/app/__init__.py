@@ -1,0 +1,3 @@
+"""
+NIRD Platform - Application Package
+"""
