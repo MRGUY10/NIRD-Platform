@@ -5,6 +5,7 @@ Token and authentication-related schemas
 
 from pydantic import BaseModel
 from typing import Optional
+from app.schemas.user import UserResponse
 
 
 class Token(BaseModel):
@@ -12,6 +13,14 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     refresh_token: Optional[str] = None
+
+
+class TokenWithUser(BaseModel):
+    """JWT token response with user data"""
+    access_token: str
+    token_type: str = "bearer"
+    refresh_token: Optional[str] = None
+    user: UserResponse
 
 
 class TokenData(BaseModel):

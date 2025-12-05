@@ -21,6 +21,11 @@ import TeamsPage from './pages/TeamsPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import ResourcesPage from './pages/ResourcesPage';
 import ForumPage from './pages/ForumPage';
+import BadgesPage from './pages/BadgesPage';
+import ProfilePage from './pages/ProfilePage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import MissionDetailPage from './pages/MissionDetailPage';
+import UnauthorizedPage from './pages/UnauthorizedPage';
 
 // Create a query client
 const queryClient = new QueryClient({
@@ -34,7 +39,7 @@ const queryClient = new QueryClient({
 });
 
 function App() {
-  const { checkAuth } = useAuthStore();
+  const { checkAuth, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
     checkAuth();
@@ -47,6 +52,7 @@ function App() {
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
           
           {/* Auth Routes */}
           <Route element={<AuthLayout />}>
@@ -64,13 +70,19 @@ function App() {
             }
           >
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/badges" element={<BadgesPage />} />
             
             {/* Student & Teacher Routes */}
             <Route path="/missions" element={<MissionsPage />} />
+            <Route path="/missions/:id" element={<MissionDetailPage />} />
             <Route path="/teams" element={<TeamsPage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
             <Route path="/resources" element={<ResourcesPage />} />
             <Route path="/forum" element={<ForumPage />} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
             
             {/* Teacher Routes - will be added in later phases */}
             {/* <Route path="/teacher/missions" element={<TeacherMissionsPage />} /> */}

@@ -20,7 +20,7 @@ class UserBase(BaseModel):
 # Request schemas
 class UserCreate(UserBase):
     """Schema for user registration"""
-    password: str = Field(..., min_length=8, max_length=100)
+    password: str = Field(..., min_length=6)
     role: UserRole = UserRole.STUDENT
     school_id: Optional[int] = None
 
