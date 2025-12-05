@@ -1,36 +1,54 @@
-# FastAPI Core
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-pydantic==2.5.3
-pydantic-settings==2.1.0
+# FastAPI Core - versions avec wheels disponibles
+fastapi==0.104.1  # Version stable avec wheels
+uvicorn[standard]==0.25.0  # Version compatible
+uvloop==0.19.0  # Alternative à asyncio pour meilleures performances
+httptools==0.6.1  # Pour uvicorn
+websockets==12.0  # Pour WebSockets
 
-# Database
-sqlalchemy==2.0.25
-psycopg2-binary==2.9.10
+# Pydantic - utiliser des versions spécifiques avec wheels
+pydantic==2.5.3
+pydantic-core==2.14.6  # Version spécifique avec wheels
+pydantic-settings==2.1.0
+pydantic-extra-types==2.4.0
+
+# Database - utiliser les versions binary
+sqlalchemy==2.0.23  # Version avec wheels
+psycopg2-binary==2.9.9  # TOUJOURS utiliser binary pour PostgreSQL
 alembic==1.13.1
 asyncpg==0.29.0
 
-# Authentication & Security
+# Authentication & Security - versions avec compilation pré-compilée
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
-python-multipart==0.0.6
 bcrypt==4.1.2
+python-multipart==0.0.6
 
-# CORS & Middleware
+# Cryptography - utiliser une version avec wheels
+cryptography==42.0.8  # Version avec wheels pré-compilés
+
+# CORS & Environment
 python-dotenv==1.0.0
+cors-middleware==0.1.7  # Alternative légère
 
 # Utils
 python-dateutil==2.8.2
-email-validator==2.1.0
+email-validator==2.1.0.post1  # Version avec wheels
 
-# Optional: Real-time & Performance
-# websockets==12.0
-# redis==5.0.1
-# slowapi==0.1.9
+# Validation supplémentaire
+typing-extensions==4.9.0
+anyio==4.2.0
 
-# Testing
+# Pour éviter la compilation Rust:
+# ÉVITER: orjson, cryptography (si possible), maturin-based packages
+# PRIVILÉGIER: json (standard library), python-jose
+
+# Alternative à orjson (si vous l'utilisiez):
+# Pas besoin d'installer, utiliser json standard
+
+# Testing (optionnel, pas nécessaire en production)
 pytest==7.4.4
-pytest-asyncio==0.23.3
+pytest-asyncio==0.23.2
 httpx==0.26.0
 
-pydantic-core==2.18.2
+# Performance monitoring (optionnel)
+asgiref==3.7.2
