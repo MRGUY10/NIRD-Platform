@@ -11,12 +11,32 @@ export interface LeaderboardEntry {
   average_score: number;
 }
 
+export interface UserLeaderboardEntry {
+  rank: number;
+  user_id: number;
+  username: string;
+  full_name?: string;
+  avatar_url?: string;
+  role: string;
+  total_points: number;
+  missions_completed: number;
+  badges_earned: number;
+  team_name?: string;
+  school_name?: string;
+}
+
 export interface LeaderboardResponse {
   entries: LeaderboardEntry[];
   current_user_team?: LeaderboardEntry;
   total_teams: number;
   page: number;
   page_size: number;
+}
+
+export interface UserLeaderboardResponse {
+  entries: UserLeaderboardEntry[];
+  total_users: number;
+  last_updated: string;
 }
 
 export interface TeamRankHistory {
@@ -51,6 +71,19 @@ export const leaderboardService = {
     page_size?: number;
   }): Promise<LeaderboardResponse> {
     const response = await apiClient.get<LeaderboardResponse>('/leaderboard', { params });
+    return response.data;
+  },
+
+  /**
+   * Get user leaderboard rankings
+   */
+  async getUserLeaderboard(params?: {
+    school_id?: number;
+    role?: string;
+    skip?: number;
+    limit?: number;
+  }): Promise<UserLeaderboardResponse> {
+    const response = await apiClient.get<UserLeaderboardResponse>('/leaderboard/users', { params });
     return response.data;
   },
 
