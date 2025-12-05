@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import { 
   Users, 
   BookOpen, 
@@ -9,42 +10,88 @@ import {
   Target,
   AlertCircle,
   BarChart3,
-  FileText
+  FileText,
+  Loader2
 } from 'lucide-react';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { useAuthStore } from '../../store/authStore';
+import { missionService } from '../../services/missionService';
+import { teamService } from '../../services/teamService';
+import { statsService } from '../../services/statsService';
 
 export const TeacherDashboard = () => {
   const { user } = useAuthStore();
 
-  // Mock data - will be replaced with real API calls
+  // Fetch teacher's team
+  const { data: team, isLoading: teamLoading } = useQuery({
+    queryKey: ['my-team'],
+    queryFn: () => teamService.getMyTeam(),
+    retry: false,
+  });
+
+  // Fetch all submissions for review
+  const { data: submissions = [], isLoading: submissionsLoading } = useQuery({
+    queryKey: ['submissions'],
+    queryFn: () => missionService.getSubmissions({ status: 'pending' }),
+  });
+
+  // Fetch team statistics
+  const { data: teamStats, isLoading: statsLoading } = useQuery({
+    queryKey: ['team-stats', team?.id],
+    queryFn: () => team ? statsService.getTeamStats(team.id) : null,
+    enabled: !!team,
+  });
+
+  // Fetch missions created by teacher
+  const { data: missions = [], isLoading: missionsLoading } = useQuery({
+    queryKey: ['missions'],
+    queryFn: () => missionService.getMissions(),
+  });
+
+  // Calculate stats from real data
   const stats = {
-    totalStudents: 42,
-    activeStudents: 38,
-    pendingSubmissions: 12,
-    approvedToday: 8,
-    totalMissions: 25,
-    completionRate: 78,
-    averageScore: 85,
+    totalStudents: team?.member_count || 0,
+    activeStudents: team?.member_count || 0, // Would need additional endpoint
+    pendingSubmissions: submissions.filter(s => s.status === 'pending').length,
+    approvedToday: submissions.filter(s => 
+      s.status === 'approved' && 
+      s.reviewed_at && 
+      new Date(s.reviewed_at).toDateString() === new Date().toDateString()
+    ).length,
+    totalMissions: missions.length,
+    completionRate: teamStats?.average_score || 0,
+    averageScore: teamStats?.average_score || 0,
   };
 
-  const pendingReviews = [
-    { id: 1, student: 'Marie Dubois', team: 'Équipe Alpha', mission: 'Recyclage des Batteries', submitted: 'Il y a 2h' },
-    { id: 2, student: 'Jean Martin', team: 'Équipe Beta', mission: 'Tri des Câbles', submitted: 'Il y a 4h' },
-    { id: 3, student: 'Sophie Laurent', team: 'Équipe Gamma', mission: 'Réparation de Smartphones', submitted: 'Il y a 6h' },
-  ];
+  // Get pending reviews
+  const pendingReviews = submissions
+    .filter(s => s.status === 'pending')
+    .slice(0, 3)
+    .map(submission => ({
+      id: submission.id,
+      student: submission.student?.full_name || 'Unknown',
+      team: submission.team?.name || team?.name || 'No Team',
+      mission: submission.mission?.title || 'Mission',
+      submitted: new Date(submission.submitted_at).toLocaleDateString('fr-FR'),
+    }));
 
-  const topStudents = [
-    { id: 1, name: 'Marie Dubois', points: 2850, missions: 24, avatar: '👩‍🎓' },
-    { id: 2, name: 'Jean Martin', points: 2650, missions: 22, avatar: '👨‍🎓' },
-    { id: 3, name: 'Sophie Laurent', points: 2400, missions: 20, avatar: '👩‍🎓' },
-  ];
+  // Get top students from team
+  const topStudents = (teamStats?.top_contributors || []).slice(0, 3).map((contributor, index) => ({
+    id: contributor.user_id,
+    name: contributor.full_name,
+    points: contributor.points,
+    missions: 0, // Would need additional data
+    avatar: index === 0 ? '👩‍🎓' : index === 1 ? '👨‍🎓' : '👩‍🎓',
+  }));
 
-  const recentActivity = [
-    { id: 1, action: 'Nouveau soumission', student: 'Pierre Durand', time: 'Il y a 1h' },
-    { id: 2, action: 'Mission complétée', student: 'Équipe Alpha', time: 'Il y a 3h' },
-    { id: 3, action: 'Badge obtenu', student: 'Marie Dubois', time: 'Il y a 5h' },
-  ];
+  // Get recent activity
+  const recentActivity = submissions.slice(0, 3).map(submission => ({
+    id: submission.id,
+    action: submission.status === 'pending' ? 'Nouvelle soumission' : 
+            submission.status === 'approved' ? 'Mission complétée' : 'Mission rejetée',
+    student: submission.student?.full_name || 'Unknown',
+    time: new Date(submission.submitted_at).toLocaleDateString('fr-FR'),
+  }));
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -58,6 +105,16 @@ export const TeacherDashboard = () => {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
   };
+
+  const isLoading = teamLoading || submissionsLoading || statsLoading || missionsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -141,42 +198,46 @@ export const TeacherDashboard = () => {
           </div>
 
           <div className="space-y-3">
-            {pendingReviews.map((review) => (
-              <motion.div
-                key={review.id}
-                whileHover={{ scale: 1.01, x: 4 }}
-                className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border-2 border-orange-200 hover:border-orange-400 transition-all cursor-pointer"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h3 className="font-bold text-gray-900">{review.mission}</h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Par <span className="font-semibold">{review.student}</span> - {review.team}
-                    </p>
+            {pendingReviews.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">Aucune soumission en attente</p>
+            ) : (
+              pendingReviews.map((review) => (
+                <motion.div
+                  key={review.id}
+                  whileHover={{ scale: 1.01, x: 4 }}
+                  className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border-2 border-orange-200 hover:border-orange-400 transition-all cursor-pointer"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <h3 className="font-bold text-gray-900">{review.mission}</h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Par <span className="font-semibold">{review.student}</span> - {review.team}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+                      >
+                        <AlertCircle className="w-4 h-4" />
+                      </motion.button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-                    >
-                      <AlertCircle className="w-4 h-4" />
-                    </motion.button>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  Soumis {review.submitted}
-                </p>
-              </motion.div>
-            ))}
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Soumis le {review.submitted}
+                  </p>
+                </motion.div>
+              ))
+            )}
           </div>
 
           <motion.button
@@ -194,19 +255,23 @@ export const TeacherDashboard = () => {
               Activité Récente
             </h3>
             <div className="space-y-3">
-              {recentActivity.map((activity) => (
-                <motion.div
-                  key={activity.id}
-                  whileHover={{ x: 4 }}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                >
-                  <div>
-                    <p className="font-semibold text-gray-900">{activity.action}</p>
-                    <p className="text-sm text-gray-600">{activity.student}</p>
-                  </div>
-                  <span className="text-xs text-gray-500">{activity.time}</span>
-                </motion.div>
-              ))}
+              {recentActivity.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">Aucune activité récente</p>
+              ) : (
+                recentActivity.map((activity) => (
+                  <motion.div
+                    key={activity.id}
+                    whileHover={{ x: 4 }}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                  >
+                    <div>
+                      <p className="font-semibold text-gray-900">{activity.action}</p>
+                      <p className="text-sm text-gray-600">{activity.student}</p>
+                    </div>
+                    <span className="text-xs text-gray-500">{activity.time}</span>
+                  </motion.div>
+                ))
+              )}
             </div>
           </div>
         </motion.div>
@@ -218,37 +283,43 @@ export const TeacherDashboard = () => {
             Top Étudiants
           </h2>
           <div className="space-y-4">
-            {topStudents.map((student, index) => (
-              <motion.div
-                key={student.id}
-                whileHover={{ scale: 1.02 }}
-                className="relative p-4 bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl border-2 border-yellow-200"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="text-3xl">{student.avatar}</div>
-                    <div className={`absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                      index === 0 ? 'bg-yellow-400 text-yellow-900' :
-                      index === 1 ? 'bg-gray-300 text-gray-700' :
-                      'bg-orange-300 text-orange-900'
-                    }`}>
-                      {index + 1}
+            {topStudents.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">Aucun étudiant dans l'équipe</p>
+            ) : (
+              topStudents.map((student, index) => (
+                <motion.div
+                  key={student.id}
+                  whileHover={{ scale: 1.02 }}
+                  className="relative p-4 bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl border-2 border-yellow-200"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="text-3xl">{student.avatar}</div>
+                      <div className={`absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                        index === 0 ? 'bg-yellow-400 text-yellow-900' :
+                        index === 1 ? 'bg-gray-300 text-gray-700' :
+                        'bg-orange-300 text-orange-900'
+                      }`}>
+                        {index + 1}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-gray-900">{student.name}</h3>
+                      <div className="flex items-center gap-3 text-sm mt-1">
+                        <span className="text-yellow-700 font-semibold">
+                          {student.points} pts
+                        </span>
+                        {student.missions > 0 && (
+                          <span className="text-gray-600">
+                            {student.missions} missions
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-gray-900">{student.name}</h3>
-                    <div className="flex items-center gap-3 text-sm mt-1">
-                      <span className="text-yellow-700 font-semibold">
-                        {student.points} pts
-                      </span>
-                      <span className="text-gray-600">
-                        {student.missions} missions
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))
+            )}
           </div>
 
           <motion.button

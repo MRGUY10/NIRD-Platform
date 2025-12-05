@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import { 
   Trophy, 
   Target, 
@@ -9,36 +11,95 @@ import {
   Star,
   Zap,
   BookOpen,
-  Calendar
+  Calendar,
+  Loader2
 } from 'lucide-react';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { useAuthStore } from '../../store/authStore';
+import { missionService } from '../../services/missionService';
+import { badgeService } from '../../services/badgeService';
+import { teamService } from '../../services/teamService';
+import { statsService } from '../../services/statsService';
 
 export const StudentDashboard = () => {
   const { user } = useAuthStore();
 
-  // Mock data - will be replaced with real API calls
+  // Fetch user's missions
+  const { data: missions = [], isLoading: missionsLoading } = useQuery({
+    queryKey: ['missions'],
+    queryFn: () => missionService.getMissions({ limit: 10 }),
+  });
+
+  // Fetch user's submissions
+  const { data: submissions = [], isLoading: submissionsLoading } = useQuery({
+    queryKey: ['my-submissions'],
+    queryFn: () => missionService.getMySubmissions(),
+  });
+
+  // Fetch user's badges
+  const { data: badges = [], isLoading: badgesLoading } = useQuery({
+    queryKey: ['my-badges'],
+    queryFn: () => badgeService.getMyBadges(),
+  });
+
+  // Fetch team data
+  const { data: team, isLoading: teamLoading } = useQuery({
+    queryKey: ['my-team'],
+    queryFn: () => teamService.getMyTeam(),
+    retry: false, // Don't retry if user doesn't have a team
+  });
+
+  // Calculate stats from real data
   const stats = {
-    totalPoints: 2450,
-    completedMissions: 18,
-    badgesEarned: 7,
-    currentRank: 3,
-    level: 12,
-    pointsToNextLevel: 550,
-    teamRank: 2,
-    streak: 7,
+    totalPoints: user?.points || 0,
+    completedMissions: submissions.filter(s => s.status === 'approved').length,
+    badgesEarned: badges.length,
+    currentRank: 3, // This would come from leaderboard API
+    level: user?.level || 1,
+    pointsToNextLevel: Math.max(0, ((user?.level || 1) * 1000) - (user?.points || 0)),
+    teamRank: 2, // This would come from team stats
+    streak: 7, // This would come from user activity tracking
   };
 
-  const recentActivities = [
-    { id: 1, type: 'mission', title: 'Recyclage des Batteries', points: 150, time: 'Il y a 2 heures' },
-    { id: 2, type: 'badge', title: 'Nouveau Badge: Éco-Warrior', time: 'Il y a 5 heures' },
-    { id: 3, type: 'mission', title: 'Tri des Câbles', points: 100, time: 'Hier' },
-  ];
+  // Get recent completed missions
+  const recentActivities = submissions
+    .filter(s => s.status === 'approved')
+    .slice(0, 3)
+    .map(submission => ({
+      id: submission.id,
+      type: 'mission' as const,
+      title: submission.mission?.title || 'Mission',
+      points: submission.points_awarded || 0,
+      time: new Date(submission.reviewed_at || submission.submitted_at).toLocaleDateString('fr-FR'),
+    }));
 
-  const upcomingMissions = [
-    { id: 1, title: 'Réparation de Smartphones', difficulty: 'Moyen', points: 200, deadline: '2 jours' },
-    { id: 2, title: 'Collecte de Déchets Électroniques', difficulty: 'Facile', points: 150, deadline: '5 jours' },
-  ];
+  // Get recently earned badges
+  const recentBadges = badges.slice(0, 2).map(userBadge => ({
+    id: userBadge.id,
+    type: 'badge' as const,
+    title: `Nouveau Badge: ${userBadge.badge?.name}`,
+    time: new Date(userBadge.earned_at).toLocaleDateString('fr-FR'),
+  }));
+
+  // Combine activities
+  const allActivities = [...recentActivities, ...recentBadges]
+    .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+    .slice(0, 5);
+
+  // Get upcoming missions (active missions not yet submitted)
+  const submittedMissionIds = new Set(submissions.map(s => s.mission_id));
+  const upcomingMissions = missions
+    .filter(mission => mission.is_active && !submittedMissionIds.has(mission.id))
+    .slice(0, 3)
+    .map(mission => ({
+      id: mission.id,
+      title: mission.title,
+      difficulty: mission.difficulty.charAt(0).toUpperCase() + mission.difficulty.slice(1),
+      points: mission.points,
+      deadline: mission.deadline 
+        ? `${Math.ceil((new Date(mission.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} jours`
+        : 'Pas de deadline',
+    }));
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -52,6 +113,16 @@ export const StudentDashboard = () => {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
   };
+
+  const isLoading = missionsLoading || submissionsLoading || badgesLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -163,34 +234,38 @@ export const StudentDashboard = () => {
               Activités Récentes
             </h3>
             <div className="space-y-3">
-              {recentActivities.map((activity) => (
-                <motion.div
-                  key={activity.id}
-                  whileHover={{ x: 4 }}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${
-                      activity.type === 'mission' 
-                        ? 'bg-green-100' 
-                        : 'bg-purple-100'
-                    }`}>
-                      {activity.type === 'mission' ? (
-                        <Target className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <Award className="w-4 h-4 text-purple-600" />
-                      )}
+              {allActivities.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">Aucune activité récente</p>
+              ) : (
+                allActivities.map((activity) => (
+                  <motion.div
+                    key={activity.id}
+                    whileHover={{ x: 4 }}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${
+                        activity.type === 'mission' 
+                          ? 'bg-green-100' 
+                          : 'bg-purple-100'
+                      }`}>
+                        {activity.type === 'mission' ? (
+                          <Target className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Award className="w-4 h-4 text-purple-600" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">{activity.title}</p>
+                        <p className="text-sm text-gray-500">{activity.time}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">{activity.title}</p>
-                      <p className="text-sm text-gray-500">{activity.time}</p>
-                    </div>
-                  </div>
-                  {activity.points && (
-                    <span className="font-bold text-green-600">+{activity.points}</span>
-                  )}
-                </motion.div>
-              ))}
+                    {'points' in activity && activity.points && (
+                      <span className="font-bold text-green-600">+{activity.points}</span>
+                    )}
+                  </motion.div>
+                ))
+              )}
             </div>
           </div>
         </motion.div>
