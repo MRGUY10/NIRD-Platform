@@ -119,8 +119,8 @@ async def health_check():
 
 
 # Include API routers
-app.include_router(auth.router, prefix="/api")
-app.include_router(users.router, prefix="/api")
+app.include_router(auth.router, prefix="/api/auth")
+app.include_router(users.router, prefix="/api/users")
 app.include_router(teams.router, prefix="/api/teams")
 app.include_router(missions.router, prefix="/api/missions")
 app.include_router(leaderboard.router, prefix="/api/leaderboard")
