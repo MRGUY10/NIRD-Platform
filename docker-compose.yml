@@ -7,8 +7,8 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: nird_user
-      POSTGRES_PASSWORD: nird_password
-      POSTGRES_DB: nird_db
+      POSTGRES_PASSWORD: vwhGdpRbIYXdv8ZPmcWYwJGwHn6uZ6wd
+      POSTGRES_DB: nird_db_p6dx
     ports:
       - "5432:5432"
     volumes:
