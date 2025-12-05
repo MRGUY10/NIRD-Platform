@@ -84,11 +84,13 @@ async def login(
     """
     OAuth2 compatible token login.
     
-    Use username and password to get an access token.
+    Use username or email and password to get an access token.
     The token should be used in the Authorization header: `Bearer <token>`
     """
-    # Find user by username
-    user = db.query(User).filter(User.username == form_data.username).first()
+    # Find user by username or email
+    user = db.query(User).filter(
+        (User.username == form_data.username) | (User.email == form_data.username)
+    ).first()
     
     if not user:
         raise HTTPException(

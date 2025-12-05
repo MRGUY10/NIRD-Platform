@@ -9,11 +9,12 @@ import { UserRole } from '../../types';
 
 interface RegisterForm {
   email: string;
+  username: string;
   password: string;
   confirmPassword: string;
   full_name: string;
   role: UserRole;
-  school_name?: string;
+  school_id?: number;
 }
 
 export const RegisterPage = () => {
@@ -134,12 +135,12 @@ export const RegisterPage = () => {
         )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Full Name */}
+        {/* Username */}
         <motion.div variants={itemVariants}>
-          <label htmlFor="full_name" className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+          <label htmlFor="username" className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
             <div className="flex items-center gap-1 px-2 py-1 bg-purple-100 rounded-lg">
               <User className="w-4 h-4 text-purple-600" />
-              <span className="text-purple-700">Nom Complet</span>
+              <span className="text-purple-700">Nom d'utilisateur</span>
             </div>
           </label>
           <div className="relative group">
@@ -153,10 +154,58 @@ export const RegisterPage = () => {
               </motion.div>
             </div>
             <input
+              {...register('username', { 
+                required: 'Le nom d\'utilisateur est requis',
+                minLength: {
+                  value: 3,
+                  message: 'Le nom d\'utilisateur doit contenir au moins 3 caractères'
+                },
+                pattern: {
+                  value: /^[a-zA-Z0-9._-]+$/,
+                  message: 'Le nom d\'utilisateur ne peut contenir que des lettres, chiffres, points, tirets et underscores'
+                }
+              })}
+              type="text"
+              id="username"
+              className="relative block w-full pl-12 pr-4 py-4 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-purple-500/30 focus:border-purple-500 transition-all text-gray-900 placeholder-gray-400"
+              placeholder="jean.dupont"
+            />
+          </div>
+          {errors.username && (
+            <motion.p
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="mt-2 text-sm text-red-600 font-medium flex items-center gap-1"
+            >
+              <XCircle className="w-4 h-4" />
+              {errors.username.message}
+            </motion.p>
+          )}
+        </motion.div>
+
+        {/* Full Name */}
+        <motion.div variants={itemVariants}>
+          <label htmlFor="full_name" className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+            <div className="flex items-center gap-1 px-2 py-1 bg-indigo-100 rounded-lg">
+              <User className="w-4 h-4 text-indigo-600" />
+              <span className="text-indigo-700">Nom Complet</span>
+            </div>
+          </label>
+          <div className="relative group">
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity blur"
+              whileHover={{ scale: 1.02 }}
+            />
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <motion.div whileHover={{ scale: 1.2, rotate: 10 }}>
+                <User className="h-5 w-5 text-gray-400" />
+              </motion.div>
+            </div>
+            <input
               {...register('full_name', { required: 'Le nom complet est requis' })}
               type="text"
               id="full_name"
-              className="relative block w-full pl-12 pr-4 py-4 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-purple-500/30 focus:border-purple-500 transition-all text-gray-900 placeholder-gray-400"
+              className="relative block w-full pl-12 pr-4 py-4 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-gray-900 placeholder-gray-400"
               placeholder="Jean Dupont"
             />
           </div>
@@ -309,23 +358,23 @@ export const RegisterPage = () => {
                 </motion.div>
               </div>
               <input
-                {...register('school_name', {
+                {...register('school_id', {
                   required: selectedRole === UserRole.TEACHER ? "Le nom de l'école est requis" : false,
                 })}
                 type="text"
-                id="school_name"
+                id="school_id"
                 className="relative block w-full pl-12 pr-4 py-4 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-gray-900 placeholder-gray-400"
                 placeholder="Nom de votre école"
               />
             </div>
-            {errors.school_name && (
+            {errors.school_id && (
               <motion.p
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="mt-2 text-sm text-red-600 font-medium flex items-center gap-1"
               >
                 <XCircle className="w-4 h-4" />
-                {errors.school_name.message}
+                {errors.school_id.message}
               </motion.p>
             )}
           </motion.div>

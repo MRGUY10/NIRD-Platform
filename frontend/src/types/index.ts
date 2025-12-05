@@ -6,16 +6,17 @@ export interface LoginRequest {
 
 export interface RegisterRequest {
   email: string;
+  username: string;
   password: string;
   full_name: string;
   role: UserRole;
-  school_name?: string;
+  school_id?: number;
 }
 
 export interface AuthResponse {
   access_token: string;
   token_type: string;
-  user: User;
+  refresh_token?: string;
 }
 
 // User Types
@@ -28,15 +29,17 @@ export enum UserRole {
 export interface User {
   id: number;
   email: string;
+  username: string;
   full_name: string;
   role: UserRole;
   school_id?: number;
-  points: number;
-  level: number;
-  profile_photo?: string;
+  is_active: boolean;
+  is_verified?: boolean;
+  profile_image?: string | null;
+  avatar_url?: string | null;
   bio?: string;
   created_at: string;
-  updated_at: string;
+  last_login?: string | null;
 }
 
 // School Types

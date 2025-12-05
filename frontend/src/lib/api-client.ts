@@ -32,8 +32,8 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error: AxiosError<ApiError>) => {
-    // Handle 401 Unauthorized - redirect to login
-    if (error.response?.status === 401) {
+    // Handle 401 Unauthorized - redirect to login (but not during login itself)
+    if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
       localStorage.removeItem('access_token');
       localStorage.removeItem('user');
       window.location.href = '/login';
@@ -63,10 +63,33 @@ export default apiClient;
 // Helper function to handle API errors
 export const getErrorMessage = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<ApiError>;
-    return axiosError.response?.data?.error?.message || 'An unexpected error occurred';
+    const axiosError = error as AxiosError<any>;
+    
+    // FastAPI returns errors in 'detail' field
+    if (axiosError.response?.data?.detail) {
+      return typeof axiosError.response.data.detail === 'string' 
+        ? axiosError.response.data.detail 
+        : JSON.stringify(axiosError.response.data.detail);
+    }
+    
+    // Fallback to nested error object
+    if (axiosError.response?.data?.error?.message) {
+      return axiosError.response.data.error.message;
+    }
+    
+    // Network errors
+    if (axiosError.code === 'ERR_NETWORK') {
+      return 'Impossible de se connecter au serveur. Veuillez vérifier que le backend est en cours d\'exécution.';
+    }
+    
+    // Timeout errors
+    if (axiosError.code === 'ECONNABORTED') {
+      return 'La requête a expiré. Veuillez réessayer.';
+    }
+    
+    return axiosError.message || 'Une erreur inattendue s\'est produite';
   }
-  return 'An unexpected error occurred';
+  return 'Une erreur inattendue s\'est produite';
 };
 
 // Upload URL helper

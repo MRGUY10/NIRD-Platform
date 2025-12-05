@@ -14,14 +14,14 @@ interface AuthState {
   register: (data: {
     email: string;
     password: string;
+    username: string;
     full_name: string;
     role: string;
-    school_name?: string;
+    school_id?: number;
   }) => Promise<void>;
   logout: () => void;
   setUser: (user: User) => void;
   checkAuth: () => Promise<void>;
-  devLogin: (role: string) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -41,20 +41,23 @@ export const useAuthStore = create<AuthState>()(
           formData.append('username', email);
           formData.append('password', password);
 
-          const response = await apiClient.post<AuthResponse>('/auth/login', formData, {
+          const response = await apiClient.post('/auth/login', formData, {
             headers: {
               'Content-Type': 'application/x-www-form-urlencoded',
             },
           });
 
-          const { access_token, user } = response.data;
+          const { access_token } = response.data;
 
           // Store token in localStorage
           localStorage.setItem('access_token', access_token);
           
+          // Fetch user data
+          const userResponse = await apiClient.get<User>('/auth/me');
+          
           set({
             token: access_token,
-            user,
+            user: userResponse.data,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -68,15 +71,31 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true });
           
-          const response = await apiClient.post<AuthResponse>('/auth/register', data);
-          const { access_token, user } = response.data;
+          // Register user
+          await apiClient.post('/auth/register', data);
+          
+          // Login with credentials
+          const formData = new URLSearchParams();
+          formData.append('username', data.email);
+          formData.append('password', data.password);
+
+          const loginResponse = await apiClient.post('/auth/login', formData, {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          });
+
+          const { access_token } = loginResponse.data;
 
           // Store token in localStorage
           localStorage.setItem('access_token', access_token);
           
+          // Fetch user data
+          const userResponse = await apiClient.get<User>('/auth/me');
+          
           set({
             token: access_token,
-            user,
+            user: userResponse.data,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -122,31 +141,6 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
           });
         }
-      },
-
-      devLogin: (role: string) => {
-        // Mock user for development without backend
-        const mockUser: User = {
-          id: 1,
-          email: `dev-${role.toLowerCase()}@nird.com`,
-          full_name: role === 'student' ? 'Étudiant Dev' : role === 'teacher' ? 'Enseignant Dev' : 'Admin Dev',
-          role: role as any,
-          is_active: true,
-          created_at: new Date().toISOString(),
-          last_login: new Date().toISOString(),
-          profile_image: null,
-        };
-
-        const mockToken = 'dev-mock-token-' + Date.now();
-        
-        localStorage.setItem('access_token', mockToken);
-        
-        set({
-          user: mockUser,
-          token: mockToken,
-          isAuthenticated: true,
-          isLoading: false,
-        });
       },
     }),
     {
