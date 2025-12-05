@@ -2,7 +2,7 @@
 Authentication API Endpoints
 Handles user registration, login, token refresh, and authentication flows
 """
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -19,7 +19,7 @@ from app.core.security import (
 )
 from app.core.dependencies import get_current_user, get_current_active_user
 from app.models.user import User, UserRole
-from app.schemas.user import UserCreate, UserResponse
+from app.schemas.user import UserCreate, UserResponse, UserUpdate
 from app.schemas.auth import Token, TokenData, RefreshTokenRequest, TokenWithUser
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -286,4 +286,58 @@ async def verify_token_endpoint(
         "username": current_user.username,
         "email": current_user.email,
         "role": current_user.role.value
+    }
+
+
+@router.put("/profile", response_model=UserResponse)
+async def update_profile(
+    profile_data: UserUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update current user's profile information.
+    
+    - **full_name**: Update user's full name
+    - **avatar_url**: Update user's avatar URL
+    """
+    if profile_data.full_name is not None:
+        current_user.full_name = profile_data.full_name
+    
+    if profile_data.avatar_url is not None:
+        current_user.avatar_url = profile_data.avatar_url
+    
+    current_user.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(current_user)
+    
+    return current_user
+
+
+@router.put("/change-password")
+async def change_password(
+    current_password: str,
+    new_password: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Change user's password.
+    
+    - **current_password**: Current password for verification
+    - **new_password**: New password to set
+    """
+    # Verify current password
+    if not verify_password(current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+    
+    # Hash and update new password
+    current_user.hashed_password = get_password_hash(new_password)
+    db.commit()
+    
+    return {
+        "message": "Password updated successfully"
     }

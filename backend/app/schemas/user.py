@@ -75,3 +75,16 @@ class UserStats(BaseModel):
     approved_submissions: int
     badges_earned: int
     teams_count: int
+
+
+class UserWithStats(UserResponse):
+    """User with detailed statistics and level information"""
+    total_points: int = 0
+    missions_completed: int = 0
+    badges_earned: int = 0
+    team: Optional[dict] = None
+    level: dict = {}
+    global_rank: int = 0
+    
+    model_config = ConfigDict(from_attributes=True)
+

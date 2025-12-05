@@ -26,7 +26,7 @@ from app.models import (
 )
 
 # Import API routers
-from app.api import auth, teams, missions, leaderboard, resources, forum, stats, badges, notifications, admin
+from app.api import auth, teams, missions, leaderboard, resources, forum, stats, badges, notifications, admin, users
 
 
 @asynccontextmanager
@@ -120,6 +120,7 @@ async def health_check():
 
 # Include API routers
 app.include_router(auth.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
 app.include_router(teams.router, prefix="/api/teams")
 app.include_router(missions.router, prefix="/api/missions")
 app.include_router(leaderboard.router, prefix="/api/leaderboard")
