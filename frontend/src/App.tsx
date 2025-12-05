@@ -26,6 +26,10 @@ import TeacherMissionsPage from './pages/teacher/TeacherMissionsPage';
 import TeacherStudentsPage from './pages/teacher/TeacherStudentsPage';
 import TeacherSubmissionsPage from './pages/teacher/TeacherSubmissionsPage';
 import TeacherAnalyticsPage from './pages/teacher/TeacherAnalyticsPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminSchoolsPage from './pages/admin/AdminSchoolsPage';
+import AdminCategoriesPage from './pages/admin/AdminCategoriesPage';
 
 // Create a query client
 const queryClient = new QueryClient({
@@ -84,8 +88,11 @@ function App() {
             <Route path="/teacher/submissions" element={<TeacherSubmissionsPage />} />
             <Route path="/teacher/analytics" element={<TeacherAnalyticsPage />} />
             
-            {/* Admin Routes - will be added in later phases */}
-            {/* <Route path="/admin/users" element={<AdminUsersPage />} /> */}
+            {/* Admin Routes */}
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+            <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/schools" element={<AdminSchoolsPage />} />
+            <Route path="/admin/categories" element={<AdminCategoriesPage />} />
           </Route>
 
           {/* 404 Not Found */}
