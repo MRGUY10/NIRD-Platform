@@ -35,6 +35,14 @@ export interface TeamStats {
   }[];
 }
 
+export interface UserStats {
+  missions_completed: number;
+  total_points: number;
+  badges_earned: number;
+  rank: number;
+  team_id?: number;
+}
+
 export const statsService = {
   /**
    * Get global platform statistics
@@ -49,6 +57,14 @@ export const statsService = {
    */
   async getTeamStats(teamId: number): Promise<TeamStats> {
     const response = await apiClient.get<TeamStats>(`/stats/team/${teamId}`);
+    return response.data;
+  },
+
+  /**
+   * Get current user's statistics
+   */
+  async getMyStats(): Promise<UserStats> {
+    const response = await apiClient.get<UserStats>('/stats/my-stats');
     return response.data;
   },
 };

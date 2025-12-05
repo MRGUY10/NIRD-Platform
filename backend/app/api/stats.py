@@ -330,3 +330,84 @@ async def get_team_stats(
         member_stats=member_stats,
         top_categories=top_categories
     )
+
+
+@router.get("/my-stats")
+async def get_my_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get current user's statistics.
+    
+    Returns:
+    - Total missions completed
+    - Total points earned
+    - User's rank (among all students or within their team)
+    - Badges earned
+    """
+    # Get user's team memberships
+    from app.models.team import TeamMember
+    
+    team_membership = db.query(TeamMember).filter(
+        TeamMember.user_id == current_user.id
+    ).first()
+    
+    # Count missions completed (approved submissions where user is submitter)
+    missions_completed = db.query(func.count(MissionSubmission.id)).filter(
+        and_(
+            MissionSubmission.submitted_by == current_user.id,
+            MissionSubmission.status == "approved"
+        )
+    ).scalar() or 0
+    
+    # Calculate total points earned
+    total_points = db.query(func.sum(Mission.points)).join(
+        MissionSubmission, Mission.id == MissionSubmission.mission_id
+    ).filter(
+        and_(
+            MissionSubmission.submitted_by == current_user.id,
+            MissionSubmission.status == "approved"
+        )
+    ).scalar() or 0
+    
+    # Count badges earned
+    badges_earned = db.query(func.count(UserBadge.id)).filter(
+        UserBadge.user_id == current_user.id
+    ).scalar() or 0
+    
+    # Calculate user's rank among all students with same role
+    user_ranks = db.query(
+        User.id,
+        func.sum(Mission.points).label('points')
+    ).join(
+        MissionSubmission, MissionSubmission.submitted_by == User.id
+    ).join(
+        Mission, MissionSubmission.mission_id == Mission.id
+    ).filter(
+        and_(
+            User.role == current_user.role,
+            MissionSubmission.status == "approved"
+        )
+    ).group_by(User.id).order_by(desc('points')).all()
+    
+    # Find current user's rank
+    user_rank = None
+    for rank, (user_id, points) in enumerate(user_ranks, start=1):
+        if user_id == current_user.id:
+            user_rank = rank
+            break
+    
+    # If user has no submissions yet, they're unranked
+    if user_rank is None:
+        # Count total users with same role who have points
+        total_ranked_users = len(user_ranks)
+        user_rank = total_ranked_users + 1
+    
+    return {
+        "missions_completed": missions_completed,
+        "total_points": int(total_points) if total_points else 0,
+        "badges_earned": badges_earned,
+        "rank": user_rank,
+        "team_id": team_membership.team_id if team_membership else None
+    }
