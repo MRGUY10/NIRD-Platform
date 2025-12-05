@@ -13,7 +13,7 @@ interface LoginForm {
 }
 
 // Dev mode flag - set to false in production
-const DEV_MODE = false;
+const DEV_MODE = true;
 
 export const LoginPage = () => {
   const navigate = useNavigate();

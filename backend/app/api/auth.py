@@ -19,7 +19,7 @@ from app.core.security import (
 )
 from app.core.dependencies import get_current_user, get_current_active_user
 from app.models.user import User, UserRole
-from app.schemas.user import UserCreate, UserResponse, UserUpdate
+from app.schemas.user import UserCreate, UserResponse
 from app.schemas.auth import Token, TokenData, RefreshTokenRequest, TokenWithUser
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -252,50 +252,6 @@ async def get_current_user_info(
     
     Requires valid access token in Authorization header.
     """
-    return current_user
-
-
-@router.put("/me", response_model=UserResponse)
-async def update_current_user_profile(
-    user_update: UserUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    """
-    Update current user's profile information.
-    
-    - **full_name**: Update user's full name
-    - **email**: Update user's email (must be unique)
-    - **avatar_url**: Update user's avatar URL
-    """
-    # Check if email is being updated and if it's already taken
-    if user_update.email and user_update.email != current_user.email:
-        existing_user = db.query(User).filter(
-            User.email == user_update.email,
-            User.id != current_user.id
-        ).first()
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already taken by another user"
-            )
-        current_user.email = user_update.email
-    
-    # Update fields if provided
-    if user_update.full_name is not None:
-        current_user.full_name = user_update.full_name
-    
-    if user_update.avatar_url is not None:
-        current_user.avatar_url = user_update.avatar_url
-    
-    # Update timestamp
-    from datetime import datetime
-    current_user.updated_at = datetime.utcnow()
-    
-    # Commit changes
-    db.commit()
-    db.refresh(current_user)
-    
     return current_user
 
 

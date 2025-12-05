@@ -50,18 +50,6 @@ export const authService = {
   },
 
   /**
-   * Update current user profile
-   */
-  async updateProfile(data: {
-    full_name?: string;
-    email?: string;
-    avatar_url?: string;
-  }): Promise<User> {
-    const response = await apiClient.put<User>('/auth/me', data);
-    return response.data;
-  },
-
-  /**
    * Logout user
    */
   async logout(): Promise<void> {

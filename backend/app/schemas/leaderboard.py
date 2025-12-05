@@ -24,35 +24,10 @@ class LeaderboardEntry(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class UserLeaderboardEntry(BaseModel):
-    """Single user leaderboard entry"""
-    rank: int
-    user_id: int
-    username: str
-    full_name: Optional[str] = None
-    avatar_url: Optional[str] = None
-    role: str
-    total_points: int
-    missions_completed: int
-    badges_earned: int
-    team_name: Optional[str] = None
-    school_name: Optional[str] = None
-    
-    model_config = ConfigDict(from_attributes=True)
-
-
 class LeaderboardResponse(BaseModel):
     """Leaderboard response with rankings"""
     entries: List[LeaderboardEntry]
     total_teams: int
-    last_updated: datetime
-    filters: Optional[dict] = None
-
-
-class UserLeaderboardResponse(BaseModel):
-    """User leaderboard response with rankings"""
-    entries: List[UserLeaderboardEntry]
-    total_users: int
     last_updated: datetime
     filters: Optional[dict] = None
 
