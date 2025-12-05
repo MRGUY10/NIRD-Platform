@@ -13,7 +13,11 @@ interface LoginForm {
 
 export const LoginPage = () => {
   const navigate = useNavigate();
+<<<<<<< HEAD
   const { login, isLoading } = useAuthStore();
+=======
+  const { login, isLoading, devLogin, user } = useAuthStore();
+>>>>>>> 939f279a055de10a09df804e9063c2802c310dae
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
@@ -23,11 +27,17 @@ export const LoginPage = () => {
     formState: { errors },
   } = useForm<LoginForm>();
 
+  // Helper function to get dashboard route based on role
+  const getDashboardRoute = (role: UserRole) => {
+    return role === UserRole.ADMIN ? '/admin/dashboard' : '/dashboard';
+  };
+
   const onSubmit = async (data: LoginForm) => {
     try {
       setError('');
       console.log('Attempting login with:', data.email);
       await login(data.email, data.password);
+<<<<<<< HEAD
       console.log('Login successful, navigating to dashboard');
       navigate('/dashboard');
     } catch (err) {
@@ -35,6 +45,37 @@ export const LoginPage = () => {
       const errorMsg = getErrorMessage(err);
       console.log('Error message:', errorMsg);
       setError(errorMsg);
+=======
+      
+      // Use a small delay to ensure Zustand persist middleware has updated
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Get the updated user from the store after login completes
+      const currentUser = useAuthStore.getState().user;
+      console.log('Login successful, user:', currentUser);
+      
+      if (currentUser) {
+        const dashboardRoute = getDashboardRoute(currentUser.role);
+        console.log('Navigating to:', dashboardRoute);
+        navigate(dashboardRoute, { replace: true });
+      } else {
+        console.error('Login succeeded but no user in store');
+        setError('Login succeeded but user data is missing. Please try again.');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError(getErrorMessage(err));
+    }
+  };
+
+  const handleDevLogin = (role: UserRole) => {
+    try {
+      setError('');
+      devLogin(role);
+      navigate(getDashboardRoute(role));
+    } catch (err) {
+      setError(getErrorMessage(err));
+>>>>>>> 939f279a055de10a09df804e9063c2802c310dae
     }
   };
 

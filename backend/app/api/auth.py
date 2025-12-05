@@ -20,12 +20,12 @@ from app.core.security import (
 from app.core.dependencies import get_current_user, get_current_active_user
 from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserResponse
-from app.schemas.auth import Token, TokenData, RefreshTokenRequest
+from app.schemas.auth import Token, TokenData, RefreshTokenRequest, TokenWithUser
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=TokenWithUser, status_code=status.HTTP_201_CREATED)
 async def register(
     user_data: UserCreate,
     db: Session = Depends(get_db)
@@ -73,10 +73,29 @@ async def register(
     db.commit()
     db.refresh(db_user)
     
-    return db_user
+    # Create access token
+    access_token = create_access_token(
+        data={
+            "sub": str(db_user.id),
+            "email": db_user.email,
+            "role": db_user.role.value
+        }
+    )
+    
+    # Create refresh token
+    refresh_token = create_refresh_token(
+        data={"sub": str(db_user.id)}
+    )
+    
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "user": db_user
+    }
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=TokenWithUser)
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
@@ -87,7 +106,11 @@ async def login(
     Use username or email and password to get an access token.
     The token should be used in the Authorization header: `Bearer <token>`
     """
+<<<<<<< HEAD
     # Find user by username or email
+=======
+    # Find user by username or email (form_data.username can contain either)
+>>>>>>> 939f279a055de10a09df804e9063c2802c310dae
     user = db.query(User).filter(
         (User.username == form_data.username) | (User.email == form_data.username)
     ).first()
@@ -128,10 +151,16 @@ async def login(
         data={"sub": str(user.id)}
     )
     
+    # Update last login
+    from datetime import datetime
+    user.last_login = datetime.utcnow()
+    db.commit()
+    
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "user": user
     }
 
 

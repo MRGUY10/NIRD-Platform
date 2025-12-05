@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, AuthResponse } from '../types';
-import apiClient from '../lib/api-client';
+import type { User } from '../types';
+import { authService } from '../services/authService';
 
 interface AuthState {
   user: User | null;
@@ -36,6 +36,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true });
           
+<<<<<<< HEAD
           // Create form data for OAuth2 password flow
           const formData = new URLSearchParams();
           formData.append('username', email);
@@ -48,6 +49,10 @@ export const useAuthStore = create<AuthState>()(
           });
 
           const { access_token } = response.data;
+=======
+          const response = await authService.login({ email, password });
+          const { access_token, user } = response;
+>>>>>>> 939f279a055de10a09df804e9063c2802c310dae
 
           // Store token in localStorage
           localStorage.setItem('access_token', access_token);
@@ -71,6 +76,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true });
           
+<<<<<<< HEAD
           // Register user
           await apiClient.post('/auth/register', data);
           
@@ -86,6 +92,10 @@ export const useAuthStore = create<AuthState>()(
           });
 
           const { access_token } = loginResponse.data;
+=======
+          const response = await authService.register(data);
+          const { access_token, user } = response;
+>>>>>>> 939f279a055de10a09df804e9063c2802c310dae
 
           // Store token in localStorage
           localStorage.setItem('access_token', access_token);
@@ -105,13 +115,19 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      logout: () => {
-        localStorage.removeItem('access_token');
-        set({
-          user: null,
-          token: null,
-          isAuthenticated: false,
-        });
+      logout: async () => {
+        try {
+          await authService.logout();
+        } catch (error) {
+          console.error('Logout error:', error);
+        } finally {
+          localStorage.removeItem('access_token');
+          set({
+            user: null,
+            token: null,
+            isAuthenticated: false,
+          });
+        }
       },
 
       setUser: (user: User) => {
@@ -126,9 +142,9 @@ export const useAuthStore = create<AuthState>()(
         }
 
         try {
-          const response = await apiClient.get<User>('/auth/me');
+          const user = await authService.getMe();
           set({
-            user: response.data,
+            user,
             token,
             isAuthenticated: true,
           });

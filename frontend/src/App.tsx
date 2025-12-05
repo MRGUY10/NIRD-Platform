@@ -16,6 +16,7 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import LandingPage from './pages/LandingPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import AboutPage from './pages/AboutPage';
+<<<<<<< HEAD
 import { MissionsPage } from './pages/missions/MissionsPage';
 import { TeamPage } from './pages/team/TeamPage';
 import LeaderboardPage from './pages/leaderboard/LeaderboardPage';
@@ -30,6 +31,18 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminSchoolsPage from './pages/admin/AdminSchoolsPage';
 import AdminCategoriesPage from './pages/admin/AdminCategoriesPage';
+=======
+import MissionsPage from './pages/MissionsPage';
+import TeamsPage from './pages/TeamsPage';
+import LeaderboardPage from './pages/LeaderboardPage';
+import ResourcesPage from './pages/ResourcesPage';
+import ForumPage from './pages/ForumPage';
+import BadgesPage from './pages/BadgesPage';
+import ProfilePage from './pages/ProfilePage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import MissionDetailPage from './pages/MissionDetailPage';
+import UnauthorizedPage from './pages/UnauthorizedPage';
+>>>>>>> 939f279a055de10a09df804e9063c2802c310dae
 
 // Create a query client
 const queryClient = new QueryClient({
@@ -43,7 +56,7 @@ const queryClient = new QueryClient({
 });
 
 function App() {
-  const { checkAuth } = useAuthStore();
+  const { checkAuth, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
     checkAuth();
@@ -56,6 +69,7 @@ function App() {
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
           
           {/* Auth Routes */}
           <Route element={<AuthLayout />}>
@@ -73,7 +87,10 @@ function App() {
             }
           >
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/badges" element={<BadgesPage />} />
             
+<<<<<<< HEAD
             {/* Student Routes */}
             <Route path="/missions" element={<MissionsPage />} />
             <Route path="/team" element={<TeamPage />} />
@@ -81,6 +98,18 @@ function App() {
             <Route path="/badges" element={<BadgesPage />} />
             <Route path="/resources" element={<ResourcesPage />} />
             <Route path="/forum" element={<ForumPage />} />
+=======
+            {/* Student & Teacher Routes */}
+            <Route path="/missions" element={<MissionsPage />} />
+            <Route path="/missions/:id" element={<MissionDetailPage />} />
+            <Route path="/teams" element={<TeamsPage />} />
+            <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/resources" element={<ResourcesPage />} />
+            <Route path="/forum" element={<ForumPage />} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+>>>>>>> 939f279a055de10a09df804e9063c2802c310dae
             
             {/* Teacher Routes */}
             <Route path="/teacher/missions" element={<TeacherMissionsPage />} />

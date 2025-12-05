@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { UserRole } from '../../types';
+import NotificationsDropdown from '../NotificationsDropdown';
 
 interface MainLayoutProps {
   children?: ReactNode;
@@ -46,32 +47,32 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       return [
         ...commonItems,
         { name: 'Missions', icon: Target, path: '/missions' },
-        { name: 'My Team', icon: Users, path: '/team' },
-        { name: 'Leaderboard', icon: Trophy, path: '/leaderboard' },
+        { name: 'Mon Équipe', icon: Users, path: '/teams' },
         { name: 'Badges', icon: Award, path: '/badges' },
-        { name: 'Resources', icon: BookOpen, path: '/resources' },
+        { name: 'Classement', icon: Trophy, path: '/leaderboard' },
+        { name: 'Ressources', icon: BookOpen, path: '/resources' },
         { name: 'Forum', icon: MessageSquare, path: '/forum' },
-        { name: 'Analytics', icon: BarChart3, path: '/analytics' },
       ];
     }
 
     if (user.role === UserRole.TEACHER) {
       return [
         ...commonItems,
-        { name: 'Missions', icon: Target, path: '/teacher/missions' },
-        { name: 'Submissions', icon: BookOpen, path: '/teacher/submissions' },
-        { name: 'Students', icon: Users, path: '/teacher/students' },
-        { name: 'Analytics', icon: BarChart3, path: '/teacher/analytics' },
-        { name: 'Resources', icon: BookOpen, path: '/resources' },
+        { name: 'Missions', icon: Target, path: '/missions' },
+        { name: 'Mon Équipe', icon: Users, path: '/teams' },
+        { name: 'Badges', icon: Award, path: '/badges' },
+        { name: 'Classement', icon: Trophy, path: '/leaderboard' },
+        { name: 'Ressources', icon: BookOpen, path: '/resources' },
+        { name: 'Forum', icon: MessageSquare, path: '/forum' },
       ];
     }
 
     if (user.role === UserRole.ADMIN) {
       return [
-        ...commonItems,
+        { name: 'Admin Dashboard', icon: BarChart3, path: '/admin/dashboard' },
         { name: 'Users', icon: Users, path: '/admin/users' },
         { name: 'Teams', icon: Users, path: '/admin/teams' },
-        { name: 'Missions', icon: Target, path: '/admin/missions' },
+        { name: 'Missions', icon: Target, path: '/missions' },
         { name: 'Content', icon: ShieldCheck, path: '/admin/content' },
         { name: 'Reports', icon: BarChart3, path: '/admin/reports' },
         { name: 'Settings', icon: Settings, path: '/admin/settings' },
@@ -96,7 +97,10 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
               >
                 {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
-              <Link to="/dashboard" className="flex items-center ml-2 lg:ml-0">
+              <Link 
+                to={user?.role === UserRole.ADMIN ? '/admin/dashboard' : '/dashboard'} 
+                className="flex items-center ml-2 lg:ml-0"
+              >
                 <span className="text-2xl font-bold text-primary-600">NIRD</span>
                 <span className="ml-2 text-sm text-gray-500">Platform</span>
               </Link>
@@ -104,13 +108,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
 
             <div className="flex items-center space-x-4">
               {/* Notifications */}
-              <Link
-                to="/notifications"
-                className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 relative"
-              >
-                <Bell size={20} />
-                <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-danger-500 ring-2 ring-white" />
-              </Link>
+              <NotificationsDropdown />
 
               {/* User Menu */}
               <div className="flex items-center space-x-3">
