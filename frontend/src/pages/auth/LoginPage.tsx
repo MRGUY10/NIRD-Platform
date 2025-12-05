@@ -2,20 +2,25 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
-import { Mail, Lock, AlertCircle, Eye, EyeOff, Recycle, Sparkles, Shield } from 'lucide-react';
+import { Mail, Lock, AlertCircle, Eye, EyeOff, Recycle, Sparkles, Shield, GraduationCap, BookOpen, UserCog } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { getErrorMessage } from '../../lib/api-client';
+import { UserRole } from '../../types';
 
 interface LoginForm {
   email: string;
   password: string;
 }
 
+// Dev mode flag - set to false in production
+const DEV_MODE = true;
+
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const { login, isLoading } = useAuthStore();
+  const { login, isLoading, devLogin } = useAuthStore();
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [selectedDevRole, setSelectedDevRole] = useState<UserRole | null>(null);
 
   const {
     register,
@@ -33,6 +38,16 @@ export const LoginPage = () => {
     }
   };
 
+  const handleDevLogin = (role: UserRole) => {
+    try {
+      setError('');
+      devLogin(role);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -43,7 +58,7 @@ export const LoginPage = () => {
 
   const itemVariants = {
     hidden: { y: 30, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } }
+    visible: { y: 0, opacity: 1, transition: { type: "spring" as const, stiffness: 100 } }
   };
 
   return (
@@ -96,6 +111,51 @@ export const LoginPage = () => {
         >
           <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
           <p className="text-sm text-red-700 font-medium">{error}</p>
+        </motion.div>
+      )}
+
+      {/* Dev Mode Role Selector */}
+      {DEV_MODE && (
+        <motion.div variants={itemVariants} className="mb-8">
+          <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertCircle className="w-5 h-5 text-yellow-600" />
+              <h3 className="text-lg font-bold text-yellow-900">Mode Développement</h3>
+            </div>
+            <p className="text-sm text-yellow-700 mb-4">Connexion rapide sans backend:</p>
+            <div className="grid grid-cols-3 gap-3">
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleDevLogin(UserRole.STUDENT)}
+                className="flex flex-col items-center gap-2 p-4 bg-white border-2 border-green-300 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all shadow-lg hover:shadow-xl"
+              >
+                <GraduationCap className="w-8 h-8 text-green-600" />
+                <span className="font-bold text-gray-900">Étudiant</span>
+              </motion.button>
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleDevLogin(UserRole.TEACHER)}
+                className="flex flex-col items-center gap-2 p-4 bg-white border-2 border-blue-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl"
+              >
+                <BookOpen className="w-8 h-8 text-blue-600" />
+                <span className="font-bold text-gray-900">Enseignant</span>
+              </motion.button>
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleDevLogin(UserRole.ADMIN)}
+                className="flex flex-col items-center gap-2 p-4 bg-white border-2 border-purple-300 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all shadow-lg hover:shadow-xl"
+              >
+                <UserCog className="w-8 h-8 text-purple-600" />
+                <span className="font-bold text-gray-900">Admin</span>
+              </motion.button>
+            </div>
+          </div>
         </motion.div>
       )}
 

@@ -21,11 +21,12 @@ interface AuthState {
   logout: () => void;
   setUser: (user: User) => void;
   checkAuth: () => Promise<void>;
+  devLogin: (role: string) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
       token: null,
       isAuthenticated: false,
@@ -121,6 +122,31 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
           });
         }
+      },
+
+      devLogin: (role: string) => {
+        // Mock user for development without backend
+        const mockUser: User = {
+          id: 1,
+          email: `dev-${role.toLowerCase()}@nird.com`,
+          full_name: role === 'student' ? 'Étudiant Dev' : role === 'teacher' ? 'Enseignant Dev' : 'Admin Dev',
+          role: role as any,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          last_login: new Date().toISOString(),
+          profile_image: null,
+        };
+
+        const mockToken = 'dev-mock-token-' + Date.now();
+        
+        localStorage.setItem('access_token', mockToken);
+        
+        set({
+          user: mockUser,
+          token: mockToken,
+          isAuthenticated: true,
+          isLoading: false,
+        });
       },
     }),
     {
