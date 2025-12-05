@@ -16,6 +16,16 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import LandingPage from './pages/LandingPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import AboutPage from './pages/AboutPage';
+import { MissionsPage } from './pages/missions/MissionsPage';
+import { TeamPage } from './pages/team/TeamPage';
+import LeaderboardPage from './pages/leaderboard/LeaderboardPage';
+import BadgesPage from './pages/badges/BadgesPage';
+import ResourcesPage from './pages/resources/ResourcesPage';
+import ForumPage from './pages/forum/ForumPage';
+import TeacherMissionsPage from './pages/teacher/TeacherMissionsPage';
+import TeacherStudentsPage from './pages/teacher/TeacherStudentsPage';
+import TeacherSubmissionsPage from './pages/teacher/TeacherSubmissionsPage';
+import TeacherAnalyticsPage from './pages/teacher/TeacherAnalyticsPage';
 
 // Create a query client
 const queryClient = new QueryClient({
@@ -60,13 +70,19 @@ function App() {
           >
             <Route path="/dashboard" element={<DashboardPage />} />
             
-            {/* Student Routes - will be added in later phases */}
-            {/* <Route path="/missions" element={<MissionsPage />} /> */}
-            {/* <Route path="/team" element={<TeamPage />} /> */}
-            {/* <Route path="/leaderboard" element={<LeaderboardPage />} /> */}
+            {/* Student Routes */}
+            <Route path="/missions" element={<MissionsPage />} />
+            <Route path="/team" element={<TeamPage />} />
+            <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/badges" element={<BadgesPage />} />
+            <Route path="/resources" element={<ResourcesPage />} />
+            <Route path="/forum" element={<ForumPage />} />
             
-            {/* Teacher Routes - will be added in later phases */}
-            {/* <Route path="/teacher/missions" element={<TeacherMissionsPage />} /> */}
+            {/* Teacher Routes */}
+            <Route path="/teacher/missions" element={<TeacherMissionsPage />} />
+            <Route path="/teacher/students" element={<TeacherStudentsPage />} />
+            <Route path="/teacher/submissions" element={<TeacherSubmissionsPage />} />
+            <Route path="/teacher/analytics" element={<TeacherAnalyticsPage />} />
             
             {/* Admin Routes - will be added in later phases */}
             {/* <Route path="/admin/users" element={<AdminUsersPage />} /> */}
