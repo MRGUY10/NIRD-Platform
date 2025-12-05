@@ -6,6 +6,7 @@ import { Mail, Lock, User, School, AlertCircle, Eye, EyeOff, Recycle, Sparkles, 
 import { useAuthStore } from '../../store/authStore';
 import { getErrorMessage } from '../../lib/api-client';
 import { UserRole } from '../../types';
+import type { Variants } from 'framer-motion';
 
 interface RegisterForm {
   email: string;
@@ -60,7 +61,7 @@ export const RegisterPage = () => {
   }, [password]);
 
   // Animation variants
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -68,7 +69,7 @@ export const RegisterPage = () => {
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } }
   };
