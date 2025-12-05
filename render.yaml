@@ -1,11 +1,9 @@
+databases:
+  - name: nird-platform-db
+    databaseName: nird_db
+    user: nird_user
+
 services:
-  # PostgreSQL Database
-  - type: pserv
-    name: nird-platform-db
-    env: docker
-    plan: free
-    ipAllowList: []
-    
   # Backend API
   - type: web
     name: nird-platform-backend
@@ -50,9 +48,3 @@ services:
           type: web
           name: nird-platform-backend
           property: host
-
-databases:
-  - name: nird-platform-db
-    plan: free
-    databaseName: nird_platform
-    user: nird_user
