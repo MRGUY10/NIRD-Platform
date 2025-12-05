@@ -17,7 +17,7 @@ const DEV_MODE = true;
 
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const { login, isLoading, devLogin } = useAuthStore();
+  const { login, isLoading, devLogin, user } = useAuthStore();
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [selectedDevRole, setSelectedDevRole] = useState<UserRole | null>(null);
@@ -28,12 +28,33 @@ export const LoginPage = () => {
     formState: { errors },
   } = useForm<LoginForm>();
 
+  // Helper function to get dashboard route based on role
+  const getDashboardRoute = (role: UserRole) => {
+    return role === UserRole.ADMIN ? '/admin/dashboard' : '/dashboard';
+  };
+
   const onSubmit = async (data: LoginForm) => {
     try {
       setError('');
       await login(data.email, data.password);
-      navigate('/dashboard');
+      
+      // Use a small delay to ensure Zustand persist middleware has updated
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Get the updated user from the store after login completes
+      const currentUser = useAuthStore.getState().user;
+      console.log('Login successful, user:', currentUser);
+      
+      if (currentUser) {
+        const dashboardRoute = getDashboardRoute(currentUser.role);
+        console.log('Navigating to:', dashboardRoute);
+        navigate(dashboardRoute, { replace: true });
+      } else {
+        console.error('Login succeeded but no user in store');
+        setError('Login succeeded but user data is missing. Please try again.');
+      }
     } catch (err) {
+      console.error('Login error:', err);
       setError(getErrorMessage(err));
     }
   };
@@ -42,7 +63,7 @@ export const LoginPage = () => {
     try {
       setError('');
       devLogin(role);
-      navigate('/dashboard');
+      navigate(getDashboardRoute(role));
     } catch (err) {
       setError(getErrorMessage(err));
     }

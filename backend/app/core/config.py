@@ -3,8 +3,8 @@ Application Configuration
 Uses Pydantic Settings for environment variable management
 """
 
-from pydantic_settings import BaseSettings
-from pydantic import Field, validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, field_validator
 from typing import List, Optional
 from functools import lru_cache
 
@@ -67,14 +67,16 @@ class Settings(BaseSettings):
     ENABLE_REGISTRATION: bool = Field(default=True, env="ENABLE_REGISTRATION")
     ENABLE_EMAIL_VERIFICATION: bool = Field(default=False, env="ENABLE_EMAIL_VERIFICATION")
     
-    @validator("CORS_ORIGINS", pre=True)
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
     def parse_cors_origins(cls, v):
         """Parse CORS origins from string or list"""
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
         return v
     
-    @validator("ENVIRONMENT")
+    @field_validator("ENVIRONMENT")
+    @classmethod
     def validate_environment(cls, v):
         """Validate environment value"""
         allowed = ["development", "staging", "production", "testing"]
@@ -92,9 +94,11 @@ class Settings(BaseSettings):
         """Check if running in production mode"""
         return self.ENVIRONMENT == "production"
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="ignore"
+    )
 
 
 @lru_cache()
