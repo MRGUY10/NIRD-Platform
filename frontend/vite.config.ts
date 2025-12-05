@@ -4,17 +4,17 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
     plugins: [react()],
     server: {
-        // Forcer l'écoute sur toutes les interfaces
         host: true,
-        port: process.env.PORT || 3000,
-        strictPort: true,
-        // Désactiver HMR en production
-        hmr: process.env.NODE_ENV !== 'production',
+        port: 3000,
+        // Autoriser tous les hôtes en développement
+        allowedHosts: ['nird-platform-1.onrender.com', 'localhost'],
+        // Ou autoriser tous les hôtes :
+        allowedHosts: true,
     },
     preview: {
-        port: process.env.PORT || 3000,
         host: true,
-        strictPort: true,
+        port: process.env.PORT || 3000,
+        allowedHosts: true,
     },
     build: {
         outDir: 'dist',
