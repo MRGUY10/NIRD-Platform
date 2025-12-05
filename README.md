@@ -1,3 +1,7 @@
+Lien vers le site web finale
+- https://nird-platform-1.onrender.com/login
+
+
 # NIRD Platform
 
 > Plateforme "NIRD" (Numérique Inclusif, Responsable et Durable) — projet full‑stack réalisé pour La Nuit de l'Info 2025.
@@ -43,7 +47,7 @@ Ce dépôt contient une API backend en **FastAPI** (Python) et une application f
 1) Cloner le dépôt
 
 ```bash
-git clone <repo-url> nird-platform
+git clone https://github.com/MRGUY10/NIRD-Platform.git nird-platform
 cd nird-platform
 ```
 

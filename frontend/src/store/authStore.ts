@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, AuthResponse } from '../types';
-import apiClient from '../lib/api-client';
+import type { User } from '../types';
+import { authService } from '../services/authService';
 
 interface AuthState {
   user: User | null;
@@ -14,14 +14,14 @@ interface AuthState {
   register: (data: {
     email: string;
     password: string;
-    username: string;
     full_name: string;
     role: string;
-    school_id?: number;
+    school_name?: string;
   }) => Promise<void>;
   logout: () => void;
   setUser: (user: User) => void;
   checkAuth: () => Promise<void>;
+  devLogin: (role: string) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -36,28 +36,15 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true });
           
-          // Create form data for OAuth2 password flow
-          const formData = new URLSearchParams();
-          formData.append('username', email);
-          formData.append('password', password);
-
-          const response = await apiClient.post('/auth/login', formData, {
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-          });
-
-          const { access_token } = response.data;
+          const response = await authService.login({ email, password });
+          const { access_token, user } = response;
 
           // Store token in localStorage
           localStorage.setItem('access_token', access_token);
           
-          // Fetch user data
-          const userResponse = await apiClient.get<User>('/auth/me');
-          
           set({
             token: access_token,
-            user: userResponse.data,
+            user,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -71,31 +58,15 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true });
           
-          // Register user
-          await apiClient.post('/auth/register', data);
-          
-          // Login with credentials
-          const formData = new URLSearchParams();
-          formData.append('username', data.email);
-          formData.append('password', data.password);
-
-          const loginResponse = await apiClient.post('/auth/login', formData, {
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-          });
-
-          const { access_token } = loginResponse.data;
+          const response = await authService.register(data);
+          const { access_token, user } = response;
 
           // Store token in localStorage
           localStorage.setItem('access_token', access_token);
           
-          // Fetch user data
-          const userResponse = await apiClient.get<User>('/auth/me');
-          
           set({
             token: access_token,
-            user: userResponse.data,
+            user,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -105,13 +76,19 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      logout: () => {
-        localStorage.removeItem('access_token');
-        set({
-          user: null,
-          token: null,
-          isAuthenticated: false,
-        });
+      logout: async () => {
+        try {
+          await authService.logout();
+        } catch (error) {
+          console.error('Logout error:', error);
+        } finally {
+          localStorage.removeItem('access_token');
+          set({
+            user: null,
+            token: null,
+            isAuthenticated: false,
+          });
+        }
       },
 
       setUser: (user: User) => {
@@ -126,9 +103,9 @@ export const useAuthStore = create<AuthState>()(
         }
 
         try {
-          const response = await apiClient.get<User>('/auth/me');
+          const user = await authService.getMe();
           set({
-            user: response.data,
+            user,
             token,
             isAuthenticated: true,
           });
@@ -141,6 +118,31 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
           });
         }
+      },
+
+      devLogin: (role: string) => {
+        // Mock user for development without backend
+        const mockUser: User = {
+          id: 1,
+          email: `dev-${role.toLowerCase()}@nird.com`,
+          full_name: role === 'student' ? 'Étudiant Dev' : role === 'teacher' ? 'Enseignant Dev' : 'Admin Dev',
+          role: role as any,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          last_login: new Date().toISOString(),
+          profile_image: null,
+        };
+
+        const mockToken = 'dev-mock-token-' + Date.now();
+        
+        localStorage.setItem('access_token', mockToken);
+        
+        set({
+          user: mockUser,
+          token: mockToken,
+          isAuthenticated: true,
+          isLoading: false,
+        });
       },
     }),
     {

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { Outlet } from 'react-router-dom';
 
 interface AuthLayoutProps {

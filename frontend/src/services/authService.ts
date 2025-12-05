@@ -50,18 +50,6 @@ export const authService = {
   },
 
   /**
-   * Update current user profile
-   */
-  async updateProfile(data: {
-    full_name?: string;
-    email?: string;
-    avatar_url?: string;
-  }): Promise<User> {
-    const response = await apiClient.put<User>('/auth/me', data);
-    return response.data;
-  },
-
-  /**
    * Logout user
    */
   async logout(): Promise<void> {
@@ -83,6 +71,29 @@ export const authService = {
     const response = await apiClient.post<AuthResponse>('/auth/refresh', {
       refresh_token: refreshToken,
     });
+    return response.data;
+  },
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(data: { full_name?: string; avatar_url?: string }): Promise<User> {
+    const response = await apiClient.put<User>('/auth/profile', data);
+    return response.data;
+  },
+
+  /**
+   * Change password
+   */
+  async changePassword(data: { current_password: string; new_password: string }): Promise<void> {
+    await apiClient.put('/auth/change-password', data);
+  },
+
+  /**
+   * Get current user with statistics
+   */
+  async getMeWithStats(): Promise<any> {
+    const response = await apiClient.get('/users/me/stats');
     return response.data;
   },
 };
