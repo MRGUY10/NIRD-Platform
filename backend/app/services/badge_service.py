@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 from typing import List, Optional
 from datetime import datetime
+from fastapi import Depends
 
+from app.core.database import get_db
 from app.models.user import User
 from app.models.badge import Badge, UserBadge
 from app.models.mission import MissionSubmission
@@ -265,6 +267,6 @@ class BadgeService:
         return count >= 10
 
 
-def get_badge_service(db: Session) -> BadgeService:
+def get_badge_service(db: Session = Depends(get_db)) -> BadgeService:
     """Dependency for getting badge service"""
     return BadgeService(db)

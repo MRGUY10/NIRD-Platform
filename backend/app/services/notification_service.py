@@ -6,7 +6,9 @@ Logic for creating and managing user notifications
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
+from fastapi import Depends
 
+from app.core.database import get_db
 from app.models.user import User
 from app.models.notification import Notification, NotificationType
 
@@ -220,6 +222,6 @@ class NotificationService:
         ).scalar() or 0
 
 
-def get_notification_service(db: Session) -> NotificationService:
+def get_notification_service(db: Session = Depends(get_db)) -> NotificationService:
     """Dependency for getting notification service"""
     return NotificationService(db)

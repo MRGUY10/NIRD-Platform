@@ -18,7 +18,7 @@ from app.models import (
 )
 
 # Import API routers
-from app.api import auth, teams, missions, leaderboard, resources, forum, stats, badges, notifications
+from app.api import auth, teams, missions, leaderboard, resources, forum, stats, badges, notifications, admin
 
 
 @asynccontextmanager
@@ -109,6 +109,7 @@ app.include_router(forum.router, prefix="/api/forum")
 app.include_router(stats.router, prefix="/api/stats", tags=["Statistics"])
 app.include_router(badges.router, prefix="/api/badges", tags=["Badges"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
+app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 
 
 if __name__ == "__main__":
