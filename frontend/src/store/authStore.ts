@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, AuthResponse } from '../types';
-import apiClient from '../lib/api-client';
+import type { User } from '../types';
+import { authService } from '../services/authService';
 
 interface AuthState {
   user: User | null;
@@ -36,18 +36,8 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true });
           
-          // Create form data for OAuth2 password flow
-          const formData = new URLSearchParams();
-          formData.append('username', email);
-          formData.append('password', password);
-
-          const response = await apiClient.post<AuthResponse>('/auth/login', formData, {
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-          });
-
-          const { access_token, user } = response.data;
+          const response = await authService.login({ email, password });
+          const { access_token, user } = response;
 
           // Store token in localStorage
           localStorage.setItem('access_token', access_token);
@@ -68,8 +58,8 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true });
           
-          const response = await apiClient.post<AuthResponse>('/auth/register', data);
-          const { access_token, user } = response.data;
+          const response = await authService.register(data);
+          const { access_token, user } = response;
 
           // Store token in localStorage
           localStorage.setItem('access_token', access_token);
@@ -86,13 +76,19 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      logout: () => {
-        localStorage.removeItem('access_token');
-        set({
-          user: null,
-          token: null,
-          isAuthenticated: false,
-        });
+      logout: async () => {
+        try {
+          await authService.logout();
+        } catch (error) {
+          console.error('Logout error:', error);
+        } finally {
+          localStorage.removeItem('access_token');
+          set({
+            user: null,
+            token: null,
+            isAuthenticated: false,
+          });
+        }
       },
 
       setUser: (user: User) => {
@@ -107,9 +103,9 @@ export const useAuthStore = create<AuthState>()(
         }
 
         try {
-          const response = await apiClient.get<User>('/auth/me');
+          const user = await authService.getMe();
           set({
-            user: response.data,
+            user,
             token,
             isAuthenticated: true,
           });

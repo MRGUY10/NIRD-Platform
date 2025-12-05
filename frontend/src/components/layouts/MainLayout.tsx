@@ -46,23 +46,21 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       return [
         ...commonItems,
         { name: 'Missions', icon: Target, path: '/missions' },
-        { name: 'My Team', icon: Users, path: '/team' },
-        { name: 'Leaderboard', icon: Trophy, path: '/leaderboard' },
-        { name: 'Badges', icon: Award, path: '/badges' },
-        { name: 'Resources', icon: BookOpen, path: '/resources' },
+        { name: 'Mon Équipe', icon: Users, path: '/teams' },
+        { name: 'Classement', icon: Trophy, path: '/leaderboard' },
+        { name: 'Ressources', icon: BookOpen, path: '/resources' },
         { name: 'Forum', icon: MessageSquare, path: '/forum' },
-        { name: 'Analytics', icon: BarChart3, path: '/analytics' },
       ];
     }
 
     if (user.role === UserRole.TEACHER) {
       return [
         ...commonItems,
-        { name: 'Missions', icon: Target, path: '/teacher/missions' },
-        { name: 'Submissions', icon: BookOpen, path: '/teacher/submissions' },
-        { name: 'Students', icon: Users, path: '/teacher/students' },
-        { name: 'Analytics', icon: BarChart3, path: '/teacher/analytics' },
-        { name: 'Resources', icon: BookOpen, path: '/resources' },
+        { name: 'Missions', icon: Target, path: '/missions' },
+        { name: 'Mon Équipe', icon: Users, path: '/teams' },
+        { name: 'Classement', icon: Trophy, path: '/leaderboard' },
+        { name: 'Ressources', icon: BookOpen, path: '/resources' },
+        { name: 'Forum', icon: MessageSquare, path: '/forum' },
       ];
     }
 

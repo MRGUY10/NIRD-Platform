@@ -16,6 +16,11 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import LandingPage from './pages/LandingPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import AboutPage from './pages/AboutPage';
+import MissionsPage from './pages/MissionsPage';
+import TeamsPage from './pages/TeamsPage';
+import LeaderboardPage from './pages/LeaderboardPage';
+import ResourcesPage from './pages/ResourcesPage';
+import ForumPage from './pages/ForumPage';
 
 // Create a query client
 const queryClient = new QueryClient({
@@ -60,10 +65,12 @@ function App() {
           >
             <Route path="/dashboard" element={<DashboardPage />} />
             
-            {/* Student Routes - will be added in later phases */}
-            {/* <Route path="/missions" element={<MissionsPage />} /> */}
-            {/* <Route path="/team" element={<TeamPage />} /> */}
-            {/* <Route path="/leaderboard" element={<LeaderboardPage />} /> */}
+            {/* Student & Teacher Routes */}
+            <Route path="/missions" element={<MissionsPage />} />
+            <Route path="/teams" element={<TeamsPage />} />
+            <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/resources" element={<ResourcesPage />} />
+            <Route path="/forum" element={<ForumPage />} />
             
             {/* Teacher Routes - will be added in later phases */}
             {/* <Route path="/teacher/missions" element={<TeacherMissionsPage />} /> */}
