@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     
     # CORS
     CORS_ORIGINS: List[str] = Field(
-        default=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:3000"],
+        default=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:3000", "*"],
         env="CORS_ORIGINS"
     )
     CORS_ALLOW_CREDENTIALS: bool = Field(default=True, env="CORS_ALLOW_CREDENTIALS")
