@@ -2,18 +2,29 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { 
   Trophy, 
-  Users, 
+  Award, 
   TrendingUp, 
   Medal,
   Crown,
-  Loader2
+  Loader2,
+  Star,
+  Target
 } from 'lucide-react';
-import { leaderboardService } from '../services/leaderboardService';
+import { userService } from '../services/userService';
+import { useAuthStore } from '../store/authStore';
 
 export default function LeaderboardPage() {
-  const { data: leaderboard, isLoading } = useQuery({
-    queryKey: ['leaderboard'],
-    queryFn: () => leaderboardService.getLeaderboard({ period: 'all-time', page_size: 50 }),
+  const { user: currentUser } = useAuthStore();
+  
+  const { data: rankings, isLoading } = useQuery({
+    queryKey: ['userRankings'],
+    queryFn: () => userService.getRankings({ limit: 50 }),
+  });
+
+  const { data: myStats } = useQuery({
+    queryKey: ['myStats'],
+    queryFn: () => userService.getMyStats(),
+    enabled: !!currentUser,
   });
 
   const getRankIcon = (rank: number) => {
@@ -45,25 +56,25 @@ export default function LeaderboardPage() {
         <div className="flex items-center gap-4 mb-4">
           <Trophy className="w-12 h-12" />
           <div>
-            <h1 className="text-4xl font-bold">Classement</h1>
-            <p className="text-purple-100">Compétition entre équipes</p>
+            <h1 className="text-4xl font-bold">Classement des Utilisateurs</h1>
+            <p className="text-purple-100">Compétition individuelle basée sur les points</p>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-4 mt-6">
           <div className="bg-white/20 backdrop-blur rounded-lg p-4">
-            <p className="text-purple-100 text-sm">Total d'équipes</p>
-            <p className="text-3xl font-bold">{leaderboard?.total_teams || 0}</p>
+            <p className="text-purple-100 text-sm">Total d'utilisateurs</p>
+            <p className="text-3xl font-bold">{rankings?.length || 0}</p>
           </div>
           <div className="bg-white/20 backdrop-blur rounded-lg p-4">
             <p className="text-purple-100 text-sm">Votre rang</p>
             <p className="text-3xl font-bold">
-              #{leaderboard?.current_user_team?.rank || '-'}
+              #{myStats?.global_rank || '-'}
             </p>
           </div>
           <div className="bg-white/20 backdrop-blur rounded-lg p-4">
             <p className="text-purple-100 text-sm">Vos points</p>
             <p className="text-3xl font-bold">
-              {leaderboard?.current_user_team?.total_points || 0}
+              {myStats?.total_points || 0}
             </p>
           </div>
         </div>
@@ -79,58 +90,105 @@ export default function LeaderboardPage() {
         </div>
         
         <div className="divide-y divide-gray-100">
-          {!leaderboard?.entries || leaderboard.entries.length === 0 ? (
+          {!rankings || rankings.length === 0 ? (
             <div className="text-center py-12">
               <Trophy className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">Aucune équipe dans le classement</p>
+              <p className="text-gray-500">Aucun utilisateur dans le classement</p>
             </div>
           ) : (
-            leaderboard.entries.map((entry) => (
+            rankings.map((user) => (
               <motion.div
-                key={entry.team_id}
+                key={user.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: entry.rank * 0.02 }}
-                className={`p-6 bg-gradient-to-r ${getRankColor(entry.rank)} border-l-4 hover:shadow-md transition-all`}
+                transition={{ delay: user.global_rank * 0.02 }}
+                className={`p-6 bg-gradient-to-r ${getRankColor(user.global_rank)} border-l-4 hover:shadow-md transition-all ${
+                  currentUser?.id === user.id ? 'ring-2 ring-purple-500' : ''
+                }`}
               >
                 <div className="flex items-center gap-6">
                   {/* Rank */}
                   <div className="flex items-center justify-center w-16 h-16 rounded-full bg-white shadow-lg">
-                    {getRankIcon(entry.rank) || (
+                    {getRankIcon(user.global_rank) || (
                       <span className="text-2xl font-bold text-gray-700">
-                        {entry.rank}
+                        {user.global_rank}
                       </span>
                     )}
                   </div>
 
-                  {/* Team Info */}
+                  {/* Avatar */}
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                    {user.full_name?.charAt(0) || user.username?.charAt(0) || 'U'}
+                  </div>
+
+                  {/* User Info */}
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold text-gray-900 mb-1">
-                      {entry.team_name}
-                    </h3>
-                    {entry.school_name && (
-                      <p className="text-sm text-gray-600">{entry.school_name}</p>
+                    <div className="flex items-center gap-3 mb-1">
+                      <h3 className="text-xl font-bold text-gray-900">
+                        {user.full_name || user.username}
+                      </h3>
+                      {currentUser?.id === user.id && (
+                        <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold">
+                          Vous
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Level Badge */}
+                    {user.level && (
+                      <div className="flex items-center gap-3 mb-2">
+                        <span 
+                          className="px-3 py-1 rounded-full text-sm font-bold"
+                          style={{ 
+                            backgroundColor: `${user.level.level_color}20`, 
+                            color: user.level.level_color 
+                          }}
+                        >
+                          {user.level.level_name}
+                        </span>
+                      </div>
                     )}
+                    
                     <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
                       <span className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
-                        {entry.member_count} membres
+                        <Target className="w-4 h-4" />
+                        {user.missions_completed} missions
                       </span>
-                      <span>
-                        {entry.completed_missions} missions complétées
+                      <span className="flex items-center gap-1">
+                        <Award className="w-4 h-4" />
+                        {user.badges_earned} badges
                       </span>
+                      {user.team && (
+                        <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
+                          {user.team.team_name}
+                        </span>
+                      )}
                     </div>
                   </div>
 
                   {/* Points */}
                   <div className="text-right">
-                    <div className="text-3xl font-bold text-purple-600">
-                      {entry.total_points.toLocaleString()}
+                    <div className="flex items-center gap-2 justify-end mb-1">
+                      <Star className="w-6 h-6 text-yellow-500" />
+                      <div className="text-3xl font-bold text-purple-600">
+                        {user.total_points.toLocaleString()}
+                      </div>
                     </div>
                     <div className="text-sm text-gray-600">points</div>
-                    {entry.average_score > 0 && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        Moy: {entry.average_score.toFixed(1)}%
+                    {user.level && user.level.progress_percentage > 0 && (
+                      <div className="mt-2 w-24">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="h-2 rounded-full transition-all"
+                            style={{ 
+                              width: `${user.level.progress_percentage}%`,
+                              backgroundColor: user.level.level_color
+                            }}
+                          />
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {user.level.progress_percentage.toFixed(0)}% au prochain niveau
+                        </div>
                       </div>
                     )}
                   </div>
@@ -143,3 +201,4 @@ export default function LeaderboardPage() {
     </div>
   );
 }
+

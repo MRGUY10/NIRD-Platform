@@ -73,4 +73,27 @@ export const authService = {
     });
     return response.data;
   },
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(data: { full_name?: string; avatar_url?: string }): Promise<User> {
+    const response = await apiClient.put<User>('/auth/profile', data);
+    return response.data;
+  },
+
+  /**
+   * Change password
+   */
+  async changePassword(data: { current_password: string; new_password: string }): Promise<void> {
+    await apiClient.put('/auth/change-password', data);
+  },
+
+  /**
+   * Get current user with statistics
+   */
+  async getMeWithStats(): Promise<any> {
+    const response = await apiClient.get('/users/me/stats');
+    return response.data;
+  },
 };

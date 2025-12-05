@@ -1,8 +1,15 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Recycle, Target, Users, Award, Heart, Globe, Zap, TrendingUp } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { statsService } from '../services/statsService';
 
 export default function AboutPage() {
+  const { data: globalStats } = useQuery({
+    queryKey: ['globalStats'],
+    queryFn: () => statsService.getGlobalStats(),
+  });
+
   const fadeInUp = {
     hidden: { opacity: 0, y: 60 },
     visible: { opacity: 1, y: 0 }
@@ -161,6 +168,49 @@ export default function AboutPage() {
                 <p className="text-gray-600 leading-relaxed">{value.description}</p>
               </motion.div>
             ))}
+          </div>
+        </motion.div>
+      </section>
+
+      {/* What We Offer */}
+      <section className="container mx-auto px-4 py-20">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={staggerContainer}
+        >
+          <motion.div variants={fadeInUp} className="text-center mb-16">
+            <h2 className="text-5xl font-bold text-gray-900 mb-4">Platform Impact</h2>
+            <p className="text-xl text-gray-600">Real-time statistics from our community</p>
+          </motion.div>
+
+          {/* Global Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
+            <motion.div variants={fadeInUp} className="bg-white rounded-2xl p-6 shadow-xl text-center">
+              <div className="text-4xl font-extrabold text-green-600 mb-2">
+                {globalStats?.total_users || 0}
+              </div>
+              <div className="text-gray-600">Active Users</div>
+            </motion.div>
+            <motion.div variants={fadeInUp} className="bg-white rounded-2xl p-6 shadow-xl text-center">
+              <div className="text-4xl font-extrabold text-blue-600 mb-2">
+                {globalStats?.total_teams || 0}
+              </div>
+              <div className="text-gray-600">Teams</div>
+            </motion.div>
+            <motion.div variants={fadeInUp} className="bg-white rounded-2xl p-6 shadow-xl text-center">
+              <div className="text-4xl font-extrabold text-purple-600 mb-2">
+                {globalStats?.approved_submissions || 0}
+              </div>
+              <div className="text-gray-600">Missions Completed</div>
+            </motion.div>
+            <motion.div variants={fadeInUp} className="bg-white rounded-2xl p-6 shadow-xl text-center">
+              <div className="text-4xl font-extrabold text-orange-600 mb-2">
+                {globalStats?.impact?.devices_saved || 0}
+              </div>
+              <div className="text-gray-600">Devices Saved</div>
+            </motion.div>
           </div>
         </motion.div>
       </section>

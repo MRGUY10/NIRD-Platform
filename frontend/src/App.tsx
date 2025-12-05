@@ -24,6 +24,7 @@ import ForumPage from './pages/ForumPage';
 import BadgesPage from './pages/BadgesPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
 import MissionDetailPage from './pages/MissionDetailPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 
@@ -83,12 +84,10 @@ function App() {
             
             {/* Admin Routes */}
             <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+            <Route path="/admin/users" element={<AdminUsersPage />} />
             
             {/* Teacher Routes - will be added in later phases */}
             {/* <Route path="/teacher/missions" element={<TeacherMissionsPage />} /> */}
-            
-            {/* Admin Routes - will be added in later phases */}
-            {/* <Route path="/admin/users" element={<AdminUsersPage />} /> */}
           </Route>
 
           {/* 404 Not Found */}

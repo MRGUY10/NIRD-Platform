@@ -1,5 +1,6 @@
 // Export all services from a single entry point
 export * from './authService';
+export * from './userService';
 export * from './missionService';
 export * from './teamService';
 export * from './leaderboardService';
