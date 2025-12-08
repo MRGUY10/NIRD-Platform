@@ -22,7 +22,7 @@ from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserResponse, UserUpdate
 from app.schemas.auth import Token, TokenData, RefreshTokenRequest, TokenWithUser
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(tags=["Authentication"])
 
 
 @router.post("/register", response_model=TokenWithUser, status_code=status.HTTP_201_CREATED)

@@ -17,7 +17,7 @@ from app.models.badge import UserBadge
 from app.models.team import TeamMember, Team
 from app.schemas.user import UserResponse, UserWithStats
 
-router = APIRouter(prefix="/users", tags=["Users"])
+router = APIRouter(tags=["Users"])
 
 
 def calculate_user_level(total_points: int) -> dict:
