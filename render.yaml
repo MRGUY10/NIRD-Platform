@@ -29,6 +29,23 @@ services:
         value: false
     healthCheckPath: /health
 
+  # Frontend Static Site Service
+  - type: web
+    name: nird-frontend
+    runtime: node
+    plan: free
+    region: oregon
+    branch: dev
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: bash start.sh
+    envVars:
+      - key: NODE_VERSION
+        value: 18.18.0
+      - key: VITE_API_URL
+        value: https://nird-backend.onrender.com
+    healthCheckPath: /
+
 databases:
   - name: jordan_ncic
     databaseName: jordan_ncic
