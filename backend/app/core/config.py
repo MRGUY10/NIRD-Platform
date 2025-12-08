@@ -24,11 +24,20 @@ class Settings(BaseSettings):
 
     # ---- Database ----
     DATABASE_URL: str = Field(
-        default="postgresql+psycopg://nird_user:nird_password@localhost:5432/nird_db",
-        env="DATABASE_URL",
+        default="postgresql://jordan:jRSP0PYuE5cyENWFxbogqGnq9ej7PCS0@dpg-d4p6c5m3jp1c73dtc590-a.oregon-postgres.render.com/jordan_ncic",
+        env="DATABASE_URL"
     )
     DB_ECHO: bool = Field(default=False, env="DB_ECHO")
-
+    
+    @field_validator("DATABASE_URL")
+    @classmethod
+    def fix_database_url(cls, v: str) -> str:
+        """Fix DATABASE_URL format for Render (postgres:// -> postgresql+psycopg2://)"""
+        if v and v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql+psycopg2://", 1)
+        elif v and v.startswith("postgresql://"):
+            return v.replace("postgresql://", "postgresql+psycopg2://", 1)
+        return v
     # ---- JWT Authentication ----
     SECRET_KEY: str = Field(default="your-secret-key-change-in-production", env="SECRET_KEY")
     ALGORITHM: str = Field(default="HS256", env="ALGORITHM")
