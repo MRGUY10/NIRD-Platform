@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users,
@@ -15,38 +15,64 @@ import {
   TrendingUp,
   Award,
   Calendar,
-  Mail
+  Mail,
+  Loader,
+  AlertCircle
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import { teamService, type TeamWithMembers } from '../../services/teamService';
+import { getErrorMessage } from '../../lib/api-client';
 
 export const TeamPage = () => {
   const { user } = useAuthStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [team, setTeam] = useState<TeamWithMembers | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock team data - will be replaced with API call
-  const hasTeam = true;
-  const team = {
-    id: 1,
-    name: 'Équipe Alpha',
-    description: 'Nous sommes passionnés par la protection de l\'environnement et le recyclage des déchets électroniques!',
-    team_code: 'ALPHA2025',
-    total_points: 2850,
-    rank: 3,
-    missions_completed: 24,
-    members: [
-      { id: 1, name: 'Marie Dubois', role: 'Capitaine', points: 1200, avatar: '👩‍🎓', joined: '2025-01-01' },
-      { id: 2, name: 'Jean Martin', role: 'Membre', points: 950, avatar: '👨‍🎓', joined: '2025-01-05' },
-      { id: 3, name: 'Sophie Laurent', role: 'Membre', points: 700, avatar: '👩‍🎓', joined: '2025-01-10' }
-    ],
-    created_at: '2025-01-01'
-  };
+  // Fetch team data from backend
+  useEffect(() => {
+    const fetchTeam = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await teamService.getMyTeam();
+        setTeam(data);
+      } catch (err: any) {
+        console.error('Error fetching team:', err);
+        // 404 means user has no team
+        if (err.response?.status === 404) {
+          setTeam(null);
+        } else {
+          setError(getErrorMessage(err));
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTeam();
+  }, []);
 
   const copyTeamCode = () => {
-    navigator.clipboard.writeText(team.team_code);
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2000);
+    if (team?.team_code) {
+      navigator.clipboard.writeText(team.team_code);
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2000);
+    }
+  };
+
+  const handleLeaveTeam = async () => {
+    if (!confirm('Êtes-vous sûr de vouloir quitter cette équipe ?')) return;
+    
+    try {
+      await teamService.leaveTeam();
+      setTeam(null);
+    } catch (err) {
+      alert(getErrorMessage(err));
+    }
   };
 
   const containerVariants = {
@@ -62,7 +88,39 @@ export const TeamPage = () => {
     visible: { opacity: 1, y: 0 }
   };
 
-  if (!hasTeam) {
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Chargement de votre équipe...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Erreur de chargement</h2>
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // No team state
+  if (!team) {
     return <NoTeamView onCreateTeam={() => setShowCreateModal(true)} onJoinTeam={() => setShowJoinModal(true)} />;
   }
 
@@ -85,6 +143,7 @@ export const TeamPage = () => {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
+          onClick={handleLeaveTeam}
           className="px-6 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
         >
           <LogOut className="w-5 h-5" />
@@ -105,35 +164,39 @@ export const TeamPage = () => {
           <div className="flex items-start justify-between mb-6">
             <div>
               <h2 className="text-4xl font-extrabold mb-2">{team.name}</h2>
-              <p className="text-blue-100 text-lg">{team.description}</p>
+              <p className="text-blue-100 text-lg">{team.description || 'Aucune description'}</p>
             </div>
             <div className="text-right">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur rounded-xl mb-2">
-                <Crown className="w-5 h-5 text-yellow-300" />
-                <span className="font-bold">Rang #{team.rank}</span>
-              </div>
+              {team.current_rank && (
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur rounded-xl mb-2">
+                  <Crown className="w-5 h-5 text-yellow-300" />
+                  <span className="font-bold">Rang #{team.current_rank}</span>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Team Code */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex-1 bg-white/20 backdrop-blur px-6 py-4 rounded-xl">
-              <p className="text-sm text-blue-100 mb-1">Code d'Équipe</p>
-              <p className="text-2xl font-bold tracking-wider">{team.team_code}</p>
+          {team.team_code && (
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex-1 bg-white/20 backdrop-blur px-6 py-4 rounded-xl">
+                <p className="text-sm text-blue-100 mb-1">Code d'Équipe</p>
+                <p className="text-2xl font-bold tracking-wider">{team.team_code}</p>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={copyTeamCode}
+                className="p-4 bg-white/20 backdrop-blur hover:bg-white/30 rounded-xl transition-all"
+              >
+                {copiedCode ? (
+                  <CheckCircle className="w-6 h-6 text-green-300" />
+                ) : (
+                  <Copy className="w-6 h-6" />
+                )}
+              </motion.button>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={copyTeamCode}
-              className="p-4 bg-white/20 backdrop-blur hover:bg-white/30 rounded-xl transition-all"
-            >
-              {copiedCode ? (
-                <CheckCircle className="w-6 h-6 text-green-300" />
-              ) : (
-                <Copy className="w-6 h-6" />
-              )}
-            </motion.button>
-          </div>
+          )}
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4">
@@ -149,7 +212,7 @@ export const TeamPage = () => {
             </div>
             <div className="text-center p-4 bg-white/10 backdrop-blur rounded-xl">
               <Users className="w-8 h-8 mx-auto mb-2 text-purple-300" />
-              <p className="text-3xl font-extrabold">{team.members.length}</p>
+              <p className="text-3xl font-extrabold">{team.members?.length || 0}</p>
               <p className="text-sm text-blue-100">Membres</p>
             </div>
           </div>
@@ -174,44 +237,48 @@ export const TeamPage = () => {
         </div>
 
         <div className="space-y-3">
-          {team.members.map((member, index) => (
-            <motion.div
-              key={member.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl hover:shadow-md transition-all"
-            >
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="text-4xl">{member.avatar}</div>
-                  {member.role === 'Capitaine' && (
-                    <div className="absolute -top-1 -right-1 bg-yellow-400 rounded-full p-1">
-                      <Crown className="w-3 h-3 text-yellow-900" />
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-gray-900">{member.name}</h3>
-                    {member.role === 'Capitaine' && (
-                      <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full">
-                        {member.role}
-                      </span>
+          {team.members && team.members.map((member, index) => {
+            const isCurrentUser = member.id === user?.id;
+            const initials = member.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?';
+            
+            return (
+              <motion.div
+                key={member.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl hover:shadow-md transition-all"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    {member.avatar_url ? (
+                      <img src={member.avatar_url} alt={member.full_name} className="w-12 h-12 rounded-full" />
+                    ) : (
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                        {initials}
+                      </div>
                     )}
                   </div>
-                  <p className="text-sm text-gray-600">Membre depuis {new Date(member.joined).toLocaleDateString('fr-FR')}</p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-gray-900">{member.full_name || member.username}</h3>
+                      {isCurrentUser && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
+                          Vous
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600">{member.email}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="text-right">
-                <div className="flex items-center gap-2 text-green-600 font-bold text-lg">
-                  <Trophy className="w-5 h-5" />
-                  {member.points}
+                <div className="text-right">
+                  <p className="text-sm text-gray-500">
+                    Membre depuis {new Date(member.created_at).toLocaleDateString('fr-FR')}
+                  </p>
                 </div>
-                <p className="text-sm text-gray-500">points</p>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
       </motion.div>
 

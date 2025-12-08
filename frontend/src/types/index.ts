@@ -56,24 +56,25 @@ export interface School {
 export interface Team {
   id: number;
   name: string;
-  school_id: number;
-  teacher_id: number;
+  school_id?: number;
   description?: string;
-  team_code: string;
-  max_members: number;
+  team_code?: string;
+  avatar_url?: string;
+  total_points: number;
+  missions_completed: number;
+  current_rank?: number;
   is_active: boolean;
   created_at: string;
   school?: School;
-  teacher?: User;
-  members?: TeamMember[];
+  members?: User[];
   member_count?: number;
-  total_points?: number;
 }
 
 export interface TeamMember {
   id: number;
   team_id: number;
-  student_id: number;
+  user_id: number;
+  is_captain: boolean;
   joined_at: string;
   student?: User;
 }
@@ -107,14 +108,15 @@ export interface Mission {
   category_id: number;
   difficulty: MissionDifficulty;
   points: number;
-  instructions?: string;
-  deadline?: string;
+  requires_photo?: boolean;
+  requires_file?: boolean;
+  requires_description?: boolean;
   is_active: boolean;
-  created_by: number;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   category?: Category;
   submission_count?: number;
+  approved_count?: number;
 }
 
 export enum SubmissionStatus {
@@ -126,21 +128,18 @@ export enum SubmissionStatus {
 export interface MissionSubmission {
   id: number;
   mission_id: number;
-  student_id: number;
-  team_id?: number;
-  submission_text?: string;
+  team_id: number;
+  submitted_by: number;
+  description: string;
   photo_url?: string;
   file_url?: string;
   status: SubmissionStatus;
-  feedback?: string;
   reviewed_by?: number;
-  reviewed_at?: string;
-  points_awarded?: number;
+  review_comment?: string;
   submitted_at: string;
+  reviewed_at?: string;
   mission?: Mission;
-  student?: User;
   team?: Team;
-  reviewer?: User;
 }
 
 // Badge Types

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Target,
@@ -13,103 +13,43 @@ import {
   Star,
   Image as ImageIcon,
   FileText,
-  AlertCircle
+  AlertCircle,
+  Loader
 } from 'lucide-react';
 import type { Mission } from '../../types';
 import { MissionDifficulty } from '../../types';
+import { missionService } from '../../services/missionService';
+import { getErrorMessage } from '../../lib/api-client';
 
 export const MissionsPage = () => {
   const [selectedFilter, setSelectedFilter] = useState<'all' | MissionDifficulty>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock missions data - will be replaced with API call
-  const missions: Mission[] = [
-    {
-      id: 1,
-      title: 'Recycler un Vieux Téléphone',
-      description: 'Trouvez un centre de recyclage local et disposez correctement d\'un ancien téléphone. Prenez une photo du processus.',
-      category_id: 1,
-      difficulty: MissionDifficulty.EASY,
-      points: 100,
-      is_active: true,
-      created_by: 2,
-      created_at: '2025-01-01',
-      updated_at: '2025-01-01',
-      submission_count: 12,
-      category: { id: 1, name: 'Recyclage E-déchets', description: '', icon: '', created_at: '2025-01-01' }
-    },
-    {
-      id: 2,
-      title: 'Guide de Tri des Batteries',
-      description: 'Recherchez et créez un guide sur comment trier correctement les batteries dans votre région. Partagez-le avec votre communauté.',
-      category_id: 1,
-      difficulty: MissionDifficulty.MEDIUM,
-      points: 200,
-      is_active: true,
-      created_by: 2,
-      created_at: '2025-01-02',
-      updated_at: '2025-01-02',
-      submission_count: 8,
-      category: { id: 1, name: 'Recyclage E-déchets', description: '', icon: '', created_at: '2025-01-01' }
-    },
-    {
-      id: 3,
-      title: 'Réparer un Appareil Cassé',
-      description: 'Tentez de réparer un appareil électronique cassé. Documentez le processus de réparation avec des photos.',
-      category_id: 2,
-      difficulty: MissionDifficulty.HARD,
-      points: 300,
-      is_active: true,
-      created_by: 2,
-      created_at: '2025-01-03',
-      updated_at: '2025-01-03',
-      submission_count: 5,
-      category: { id: 2, name: 'Réparation d\'Appareils', description: '', icon: '', created_at: '2025-01-01' }
-    },
-    {
-      id: 4,
-      title: 'Audit Énergétique Maison',
-      description: 'Effectuez un audit énergétique de votre maison et identifiez les appareils énergivores.',
-      category_id: 3,
-      difficulty: MissionDifficulty.MEDIUM,
-      points: 200,
-      is_active: true,
-      created_by: 2,
-      created_at: '2025-01-04',
-      updated_at: '2025-01-04',
-      submission_count: 15,
-      category: { id: 3, name: 'Efficacité Énergétique', description: '', icon: '', created_at: '2025-01-01' }
-    },
-    {
-      id: 5,
-      title: 'Campagne de Sensibilisation École',
-      description: 'Organisez une campagne de sensibilisation sur les e-déchets dans votre école.',
-      category_id: 4,
-      difficulty: MissionDifficulty.HARD,
-      points: 400,
-      is_active: true,
-      created_by: 2,
-      created_at: '2025-01-05',
-      updated_at: '2025-01-05',
-      submission_count: 3,
-      category: { id: 4, name: 'Sensibilisation', description: '', icon: '', created_at: '2025-01-01' }
-    },
-    {
-      id: 6,
-      title: 'Donner des Électroniques Fonctionnels',
-      description: 'Donnez des appareils fonctionnels mais inutilisés à une association ou école.',
-      category_id: 1,
-      difficulty: MissionDifficulty.EASY,
-      points: 150,
-      is_active: true,
-      created_by: 2,
-      created_at: '2025-01-06',
-      updated_at: '2025-01-06',
-      submission_count: 20,
-      category: { id: 1, name: 'Recyclage E-déchets', description: '', icon: '', created_at: '2025-01-01' }
-    }
-  ];
+  // Fetch missions from backend
+  useEffect(() => {
+    const fetchMissions = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await missionService.listMissions({
+          is_active: true,
+          limit: 100
+        });
+        setMissions(data);
+      } catch (err) {
+        console.error('Error fetching missions:', err);
+        setError(getErrorMessage(err));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMissions();
+  }, []);
 
   const difficultyColors = {
     easy: { bg: 'from-green-500 to-emerald-500', text: 'text-green-700', badge: 'bg-green-100' },
@@ -161,11 +101,13 @@ export const MissionsPage = () => {
           <p className="text-gray-600 mt-2">Complétez des missions pour gagner des points et badges</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="px-4 py-2 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl">
-            <p className="text-sm font-semibold text-green-700">
-              {filteredMissions.length} mission{filteredMissions.length > 1 ? 's' : ''} disponible{filteredMissions.length > 1 ? 's' : ''}
-            </p>
-          </div>
+          {!loading && (
+            <div className="px-4 py-2 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl">
+              <p className="text-sm font-semibold text-green-700">
+                {filteredMissions.length} mission{filteredMissions.length > 1 ? 's' : ''} disponible{filteredMissions.length > 1 ? 's' : ''}
+              </p>
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -221,14 +163,40 @@ export const MissionsPage = () => {
         </div>
       </motion.div>
 
+      {/* Loading State */}
+      {loading && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-16"
+        >
+          <Loader className="w-12 h-12 text-green-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Chargement des missions...</p>
+        </motion.div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 text-center"
+        >
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+          <h3 className="text-xl font-bold text-red-900 mb-2">Erreur de chargement</h3>
+          <p className="text-red-700">{error}</p>
+        </motion.div>
+      )}
+
       {/* Missions Grid */}
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
-      >
-        {filteredMissions.map((mission) => {
+      {!loading && !error && (
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {filteredMissions.map((mission) => {
           const colors = difficultyColors[mission.difficulty];
           return (
             <motion.div
@@ -283,10 +251,11 @@ export const MissionsPage = () => {
             </motion.div>
           );
         })}
-      </motion.div>
+        </motion.div>
+      )}
 
       {/* Empty State */}
-      {filteredMissions.length === 0 && (
+      {!loading && !error && filteredMissions.length === 0 && (
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -322,6 +291,9 @@ const MissionDetailModal = ({ mission, onClose }: MissionDetailModalProps) => {
   const [description, setDescription] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [fileUrl, setFileUrl] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const difficultyColors: Record<MissionDifficulty, { bg: string; text: string; badge: string }> = {
     [MissionDifficulty.EASY]: { bg: 'from-green-500 to-emerald-500', text: 'text-green-700', badge: 'bg-green-100' },
@@ -337,10 +309,43 @@ const MissionDetailModal = ({ mission, onClose }: MissionDetailModalProps) => {
 
   const colors = difficultyColors[mission.difficulty];
 
-  const handleSubmit = () => {
-    console.log('Submitting mission:', { description, photoUrl, fileUrl });
-    // API call will go here
-    onClose();
+  const handleSubmit = async () => {
+    // Validate required fields
+    if (!description.trim()) {
+      setSubmitError('La description est requise');
+      return;
+    }
+
+    if (mission.requires_photo && !photoUrl.trim()) {
+      setSubmitError('Une photo est requise pour cette mission');
+      return;
+    }
+
+    if (mission.requires_file && !fileUrl.trim()) {
+      setSubmitError('Un fichier est requis pour cette mission');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setSubmitError(null);
+      
+      await missionService.submitMission(mission.id, {
+        description: description.trim(),
+        photo_url: photoUrl.trim() || undefined,
+        file_url: fileUrl.trim() || undefined
+      });
+
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        onClose();
+      }, 2000);
+    } catch (err) {
+      console.error('Error submitting mission:', err);
+      setSubmitError(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -413,26 +418,65 @@ const MissionDetailModal = ({ mission, onClose }: MissionDetailModalProps) => {
           <div className="mb-8 p-6 bg-gray-50 rounded-2xl">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Exigences</h3>
             <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <FileText className="w-5 h-5 text-blue-600" />
+              {mission.requires_description !== false && (
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <span className="text-gray-700">Description détaillée requise</span>
                 </div>
-                <span className="text-gray-700">Description détaillée requise</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <ImageIcon className="w-5 h-5 text-green-600" />
+              )}
+              {mission.requires_photo && (
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <ImageIcon className="w-5 h-5 text-green-600" />
+                  </div>
+                  <span className="text-gray-700">Photo requise</span>
                 </div>
-                <span className="text-gray-700">Photo recommandée</span>
-              </div>
+              )}
+              {mission.requires_file && (
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <FileText className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <span className="text-gray-700">Fichier requis</span>
+                </div>
+              )}
+              {!mission.requires_photo && !mission.requires_file && (
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gray-100 rounded-lg">
+                    <ImageIcon className="w-5 h-5 text-gray-600" />
+                  </div>
+                  <span className="text-gray-600">Photo ou fichier optionnel</span>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Submission Form */}
-          {showSubmitForm ? (
+          {submitSuccess ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-green-50 border-2 border-green-200 rounded-2xl p-6 text-center"
+            >
+              <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-3" />
+              <h3 className="text-2xl font-bold text-green-900 mb-2">Mission Soumise!</h3>
+              <p className="text-green-700">Votre soumission sera examinée par un enseignant.</p>
+            </motion.div>
+          ) : showSubmitForm ? (
             <div className="space-y-4">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Soumettre Votre Mission</h3>
               
+              {submitError && (
+                <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
+                  <div className="flex items-center gap-2 text-red-700">
+                    <AlertCircle className="w-5 h-5" />
+                    <span className="font-semibold">{submitError}</span>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
                   Description de votre soumission *
@@ -442,50 +486,65 @@ const MissionDetailModal = ({ mission, onClose }: MissionDetailModalProps) => {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
                   placeholder="Décrivez comment vous avez complété la mission..."
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-500/20 transition-all"
+                  disabled={submitting}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-500/20 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
-                  URL de la photo (optionnel)
+                  URL de la photo {mission.requires_photo ? '*' : '(optionnel)'}
                 </label>
                 <input
                   type="url"
                   value={photoUrl}
                   onChange={(e) => setPhotoUrl(e.target.value)}
                   placeholder="https://..."
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-500/20 transition-all"
+                  disabled={submitting}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-500/20 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
-                  URL du fichier (optionnel)
+                  URL du fichier {mission.requires_file ? '*' : '(optionnel)'}
                 </label>
                 <input
                   type="url"
                   value={fileUrl}
                   onChange={(e) => setFileUrl(e.target.value)}
                   placeholder="https://..."
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-500/20 transition-all"
+                  disabled={submitting}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-500/20 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
 
               <div className="flex gap-3">
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: submitting ? 1 : 1.02 }}
+                  whileTap={{ scale: submitting ? 1 : 0.98 }}
                   onClick={handleSubmit}
-                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
+                  disabled={submitting}
+                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Soumettre la Mission
+                  {submitting ? (
+                    <>
+                      <Loader className="w-5 h-5 animate-spin" />
+                      Soumission en cours...
+                    </>
+                  ) : (
+                    'Soumettre la Mission'
+                  )}
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowSubmitForm(false)}
-                  className="px-6 bg-gray-200 text-gray-700 py-4 rounded-xl font-bold hover:bg-gray-300 transition-all"
+                  onClick={() => {
+                    setShowSubmitForm(false);
+                    setSubmitError(null);
+                  }}
+                  disabled={submitting}
+                  className="px-6 bg-gray-200 text-gray-700 py-4 rounded-xl font-bold hover:bg-gray-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Annuler
                 </motion.button>
