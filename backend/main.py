@@ -95,6 +95,14 @@ async def root():
     }
 
 
+@app.get("/health")
+async def simple_health_check():
+    """
+    Simple health check endpoint for Render
+    """
+    return {"status": "ok"}
+
+
 @app.get("/api/health")
 async def health_check():
     """
@@ -133,9 +141,17 @@ app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 
 if __name__ == "__main__":
     import uvicorn
+    import os
+    
+    # Use environment variables for host and port (important for Render)
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "8000"))
+    
+    logger.info(f"🌐 Starting server on {host}:{port}")
+    
     uvicorn.run(
         "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True
+        host=host,
+        port=port,
+        reload=settings.DEBUG
     )

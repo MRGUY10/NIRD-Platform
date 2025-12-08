@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = Field(default=True, env="DEBUG")
     ENVIRONMENT: str = Field(default="development", env="ENVIRONMENT")
+    PORT: int = Field(default=8000, env="PORT")
+    HOST: str = Field(default="0.0.0.0", env="HOST")
 
     # ---- Database ----
     DATABASE_URL: str = Field(
