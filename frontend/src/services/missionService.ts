@@ -19,6 +19,14 @@ export interface MissionWithDetails extends Mission {
   approved_count?: number;
 }
 
+export interface ListSubmissionsParams {
+  skip?: number;
+  limit?: number;
+  mission_id?: number;
+  team_id?: number;
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+}
+
 /**
  * Mission Service
  * Handles all mission-related API calls
@@ -101,4 +109,16 @@ export const missionService = {
       throw error;
     }
   }
+};
+
+export const submissionService = {
+  async listSubmissions(params: ListSubmissionsParams = {}): Promise<MissionSubmission[]> {
+    try {
+      const response = await apiClient.get('/missions/submissions', { params });
+      return response.data as MissionSubmission[];
+    } catch (error) {
+      console.error('Failed to list submissions:', getErrorMessage(error));
+      throw error;
+    }
+  },
 };

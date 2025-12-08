@@ -13,32 +13,112 @@ import {
 } from 'lucide-react';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { useAuthStore } from '../../store/authStore';
+import { useEffect, useMemo, useState } from 'react';
+import { statsService } from '../../services/statsService';
+import { missionService } from '../../services/missionService';
+import { badgeService } from '../../services/badgeService';
+import { teamService } from '../../services/teamService';
 
 export const StudentDashboard = () => {
   const { user } = useAuthStore();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [teamId, setTeamId] = useState<number | null>(null);
+  const [teamName, setTeamName] = useState<string>('Mon équipe');
+  const [teamRank, setTeamRank] = useState<number | null>(null);
+  const [totalPoints, setTotalPoints] = useState<number>(0);
+  const [completedMissions, setCompletedMissions] = useState<number>(0);
+  const [badgesEarned, setBadgesEarned] = useState<number>(0);
+  const [upcomingMissions, setUpcomingMissions] = useState<Array<{ id: number; title: string; difficulty: string; points: number; deadline?: string }>>([]);
+  const [recentActivities, setRecentActivities] = useState<Array<{ id: number; type: 'mission' | 'badge'; title: string; points?: number; time: string }>>([]);
 
-  // Mock data - will be replaced with real API calls
-  const stats = {
-    totalPoints: 2450,
-    completedMissions: 18,
-    badgesEarned: 7,
-    currentRank: 3,
-    level: 12,
-    pointsToNextLevel: 550,
-    teamRank: 2,
-    streak: 7,
-  };
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  const recentActivities = [
-    { id: 1, type: 'mission', title: 'Recyclage des Batteries', points: 150, time: 'Il y a 2 heures' },
-    { id: 2, type: 'badge', title: 'Nouveau Badge: Éco-Warrior', time: 'Il y a 5 heures' },
-    { id: 3, type: 'mission', title: 'Tri des Câbles', points: 100, time: 'Hier' },
-  ];
+        // Get my team (student)
+        try {
+          const myTeam = await teamService.getMyTeam();
+          if (!mounted) return;
+          setTeamId(myTeam.id);
+          setTeamName(myTeam.name);
+        } catch (e) {
+          // Not in a team yet or other error
+        }
 
-  const upcomingMissions = [
-    { id: 1, title: 'Réparation de Smartphones', difficulty: 'Moyen', points: 200, deadline: '2 jours' },
-    { id: 2, title: 'Collecte de Déchets Électroniques', difficulty: 'Facile', points: 150, deadline: '5 jours' },
-  ];
+        // Fetch badges
+        try {
+          const myBadges = await badgeService.getMyBadges();
+          if (!mounted) return;
+          setBadgesEarned(myBadges.length);
+        } catch (e) {
+          // ignore badges error
+        }
+
+        // Active missions (limit 4)
+        try {
+          const missions = await missionService.listMissions({ is_active: true, limit: 4 });
+          if (!mounted) return;
+          setUpcomingMissions(
+            missions.map((m) => ({ id: m.id, title: m.title, difficulty: m.difficulty, points: m.points }))
+          );
+        } catch (e) {
+          // ignore
+        }
+
+        // Recent activities: my team submissions
+        try {
+          const subs = await missionService.getMySubmissions();
+          if (!mounted) return;
+          const items = subs.slice(0, 5).map((s) => ({
+            id: s.id,
+            type: 'mission' as const,
+            title: `Soumission #${s.id}`,
+            points: s.mission?.points ?? 0,
+            time: new Date(s.submitted_at).toLocaleString('fr-FR'),
+          }));
+          setRecentActivities(items);
+        } catch (e) {
+          // ignore
+        }
+
+        // Team stats if team exists
+        if (teamId) {
+          try {
+            const tstats = await statsService.getTeam(teamId);
+            if (!mounted) return;
+            setTotalPoints(tstats.total_points);
+            setCompletedMissions(tstats.total_missions_completed);
+            setTeamRank(tstats.current_rank ?? null);
+          } catch (e) {
+            // ignore
+          }
+        }
+      } catch (e: any) {
+        if (!mounted) return;
+        setError(e?.message || 'Erreur lors du chargement du tableau de bord');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [teamId]);
+
+  const stats = useMemo(() => ({
+    totalPoints,
+    completedMissions,
+    badgesEarned,
+    currentRank: teamRank ?? 0,
+    level: 0,
+    pointsToNextLevel: 0,
+    teamRank: teamRank ?? 0,
+    streak: 0,
+  }), [totalPoints, completedMissions, badgesEarned, teamRank]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -74,13 +154,15 @@ export const StudentDashboard = () => {
           </p>
           
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-white/20 backdrop-blur px-4 py-2 rounded-xl">
-              <Flame className="w-5 h-5 text-orange-300" />
-              <span className="font-bold">{stats.streak} jours de série!</span>
-            </div>
+            {teamName && (
+              <div className="flex items-center gap-2 bg-white/20 backdrop-blur px-4 py-2 rounded-xl">
+                <Users className="w-5 h-5 text-orange-300" />
+                <span className="font-bold">{teamName}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2 bg-white/20 backdrop-blur px-4 py-2 rounded-xl">
               <Star className="w-5 h-5 text-yellow-300" />
-              <span className="font-bold">Niveau {stats.level}</span>
+              <span className="font-bold">Badges {stats.badgesEarned}</span>
             </div>
           </div>
         </div>
@@ -92,7 +174,7 @@ export const StudentDashboard = () => {
           title="Points Totaux"
           value={stats.totalPoints.toLocaleString()}
           icon={Trophy}
-          subtitle={`${stats.pointsToNextLevel} pour le prochain niveau`}
+          subtitle={teamRank ? `Rang équipe #${teamRank}` : 'Points cumulés de l\'équipe'}
           trend={{ value: 15, isPositive: true }}
           color="green"
         />
@@ -100,7 +182,7 @@ export const StudentDashboard = () => {
           title="Missions Complétées"
           value={stats.completedMissions}
           icon={Target}
-          subtitle="Ce mois-ci"
+          subtitle="Soumissions approuvées (équipe)"
           trend={{ value: 8, isPositive: true }}
           color="blue"
         />
@@ -113,7 +195,7 @@ export const StudentDashboard = () => {
         />
         <StatCard
           title="Rang dans l'Équipe"
-          value={`#${stats.teamRank}`}
+          value={teamRank ? `#${teamRank}` : '-'}
           icon={Users}
           subtitle="Top contributeur"
           color="orange"
@@ -129,18 +211,18 @@ export const StudentDashboard = () => {
               <TrendingUp className="w-6 h-6 text-green-600" />
               Progression du Niveau
             </h2>
-            <span className="text-3xl font-extrabold text-green-600">Niveau {stats.level}</span>
+            <span className="text-3xl font-extrabold text-green-600">Points {stats.totalPoints}</span>
           </div>
 
           <div className="mb-4">
             <div className="flex justify-between text-sm font-semibold text-gray-600 mb-2">
               <span>{stats.totalPoints} points</span>
-              <span>{stats.totalPoints + stats.pointsToNextLevel} points</span>
+              <span>{stats.totalPoints} points</span>
             </div>
             <div className="relative h-6 bg-gray-200 rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${(stats.totalPoints / (stats.totalPoints + stats.pointsToNextLevel)) * 100}%` }}
+                animate={{ width: `100%` }}
                 transition={{ duration: 1, ease: "easeOut" }}
                 className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"
               />
@@ -152,9 +234,7 @@ export const StudentDashboard = () => {
             </div>
           </div>
 
-          <p className="text-gray-600 text-sm">
-            Plus que <span className="font-bold text-green-600">{stats.pointsToNextLevel} points</span> pour atteindre le niveau {stats.level + 1}!
-          </p>
+          {error && (<p className="text-red-600 text-sm">{error}</p>)}
 
           {/* Recent Activities */}
           <div className="mt-8">
@@ -191,6 +271,9 @@ export const StudentDashboard = () => {
                   )}
                 </motion.div>
               ))}
+              {recentActivities.length === 0 && !loading && (
+                <div className="text-sm text-gray-500">Aucune activité récente.</div>
+              )}
             </div>
           </div>
         </motion.div>
@@ -211,9 +294,9 @@ export const StudentDashboard = () => {
                 <h3 className="font-bold text-gray-900 mb-2">{mission.title}</h3>
                 <div className="flex items-center justify-between text-sm mb-2">
                   <span className={`px-2 py-1 rounded-lg font-semibold ${
-                    mission.difficulty === 'Facile' 
+                    mission.difficulty === 'easy' 
                       ? 'bg-green-100 text-green-700'
-                      : mission.difficulty === 'Moyen'
+                      : mission.difficulty === 'medium'
                       ? 'bg-yellow-100 text-yellow-700'
                       : 'bg-red-100 text-red-700'
                   }`}>
@@ -223,10 +306,13 @@ export const StudentDashboard = () => {
                 </div>
                 <p className="text-xs text-gray-600 flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
-                  Date limite: {mission.deadline}
+                  Mission disponible
                 </p>
               </motion.div>
             ))}
+            {upcomingMissions.length === 0 && !loading && (
+              <div className="text-sm text-gray-500">Aucune mission disponible.</div>
+            )}
           </div>
 
           <motion.button

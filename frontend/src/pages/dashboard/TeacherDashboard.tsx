@@ -13,38 +13,82 @@ import {
 } from 'lucide-react';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { useAuthStore } from '../../store/authStore';
+import { useEffect, useState } from 'react';
+import { statsService } from '../../services/statsService';
+import { submissionService } from '../../services/missionService';
 
 export const TeacherDashboard = () => {
   const { user } = useAuthStore();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalStudents, setTotalStudents] = useState<number>(0);
+  const [activeStudents, setActiveStudents] = useState<number>(0);
+  const [pendingSubmissions, setPendingSubmissions] = useState<number>(0);
+  const [totalMissions, setTotalMissions] = useState<number>(0);
+  const [pendingReviews, setPendingReviews] = useState<Array<{ id: number; student: string; team: string; mission: string; submitted: string }>>([]);
+  const [recentActivity, setRecentActivity] = useState<Array<{ id: number; action: string; student: string; time: string }>>([]);
 
-  // Mock data - will be replaced with real API calls
-  const stats = {
-    totalStudents: 42,
-    activeStudents: 38,
-    pendingSubmissions: 12,
-    approvedToday: 8,
-    totalMissions: 25,
-    completionRate: 78,
-    averageScore: 85,
-  };
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  const pendingReviews = [
-    { id: 1, student: 'Marie Dubois', team: 'Équipe Alpha', mission: 'Recyclage des Batteries', submitted: 'Il y a 2h' },
-    { id: 2, student: 'Jean Martin', team: 'Équipe Beta', mission: 'Tri des Câbles', submitted: 'Il y a 4h' },
-    { id: 3, student: 'Sophie Laurent', team: 'Équipe Gamma', mission: 'Réparation de Smartphones', submitted: 'Il y a 6h' },
-  ];
+        // Global stats
+        try {
+          const g = await statsService.getGlobal();
+          if (!mounted) return;
+          setTotalStudents(g.total_users);
+          setActiveStudents(g.active_users_last_30_days);
+          setTotalMissions(g.total_missions);
+        } catch (e: any) {
+          if (mounted) setError(e.message || 'Erreur de statistiques');
+        }
 
-  const topStudents = [
-    { id: 1, name: 'Marie Dubois', points: 2850, missions: 24, avatar: '👩‍🎓' },
-    { id: 2, name: 'Jean Martin', points: 2650, missions: 22, avatar: '👨‍🎓' },
-    { id: 3, name: 'Sophie Laurent', points: 2400, missions: 20, avatar: '👩‍🎓' },
-  ];
+        // Pending submissions
+        try {
+          const subs = await submissionService.listSubmissions({ status: 'PENDING', limit: 10 });
+          if (!mounted) return;
+          setPendingSubmissions(subs.length);
+          setPendingReviews(
+            subs.map((s) => ({
+              id: s.id,
+              student: `Utilisateur #${s.submitted_by}`,
+              team: s.team?.name ? s.team.name : `Équipe #${s.team_id}`,
+              mission: s.mission?.title ? s.mission.title : `Mission #${s.mission_id}`,
+              submitted: new Date(s.submitted_at).toLocaleString('fr-FR'),
+            }))
+          );
+        } catch (e) {
+          // ignore
+        }
 
-  const recentActivity = [
-    { id: 1, action: 'Nouveau soumission', student: 'Pierre Durand', time: 'Il y a 1h' },
-    { id: 2, action: 'Mission complétée', student: 'Équipe Alpha', time: 'Il y a 3h' },
-    { id: 3, action: 'Badge obtenu', student: 'Marie Dubois', time: 'Il y a 5h' },
-  ];
+        // Recent submissions (any status)
+        try {
+          const recent = await submissionService.listSubmissions({ limit: 5 });
+          if (!mounted) return;
+          setRecentActivity(
+            recent.map((s) => ({
+              id: s.id,
+              action: `Soumission ${s.status.toLowerCase()}`,
+              student: `Utilisateur #${s.submitted_by}`,
+              time: new Date(s.submitted_at).toLocaleString('fr-FR'),
+            }))
+          );
+        } catch (e) {
+          // ignore
+        }
+      } catch (e: any) {
+        if (mounted) setError(e.message || 'Erreur du tableau de bord');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -82,11 +126,11 @@ export const TeacherDashboard = () => {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-white/20 backdrop-blur px-4 py-2 rounded-xl">
               <AlertCircle className="w-5 h-5 text-yellow-300" />
-              <span className="font-bold">{stats.pendingSubmissions} soumissions en attente</span>
+              <span className="font-bold">{pendingSubmissions} soumissions en attente</span>
             </div>
             <div className="flex items-center gap-2 bg-white/20 backdrop-blur px-4 py-2 rounded-xl">
               <CheckCircle className="w-5 h-5 text-green-300" />
-              <span className="font-bold">{stats.approvedToday} approuvées aujourd'hui</span>
+              <span className="font-bold">{totalMissions} missions listées</span>
             </div>
           </div>
         </div>
@@ -95,33 +139,33 @@ export const TeacherDashboard = () => {
       {/* Stats Grid */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title="Étudiants Totaux"
-          value={stats.totalStudents}
+          title="Utilisateurs Totaux"
+          value={totalStudents}
           icon={Users}
-          subtitle={`${stats.activeStudents} actifs`}
-          trend={{ value: 12, isPositive: true }}
+          subtitle={`${activeStudents} actifs (30 jours)`}
+          trend={{ value: 0, isPositive: true }}
           color="blue"
         />
         <StatCard
           title="Soumissions en Attente"
-          value={stats.pendingSubmissions}
+          value={pendingSubmissions}
           icon={Clock}
           subtitle="À réviser"
           color="orange"
         />
         <StatCard
           title="Missions Créées"
-          value={stats.totalMissions}
+          value={totalMissions}
           icon={Target}
           subtitle="Total disponibles"
           color="purple"
         />
         <StatCard
           title="Taux de Réussite"
-          value={`${stats.completionRate}%`}
+          value={`-`}
           icon={TrendingUp}
-          subtitle="Moyenne de classe"
-          trend={{ value: 5, isPositive: true }}
+          subtitle="Indisponible"
+          trend={{ value: 0, isPositive: true }}
           color="green"
         />
       </motion.div>
@@ -136,7 +180,7 @@ export const TeacherDashboard = () => {
               Soumissions à Réviser
             </h2>
             <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-bold">
-              {stats.pendingSubmissions} en attente
+              {pendingSubmissions} en attente
             </span>
           </div>
 
@@ -177,6 +221,9 @@ export const TeacherDashboard = () => {
                 </p>
               </motion.div>
             ))}
+            {pendingReviews.length === 0 && !loading && (
+              <div className="text-sm text-gray-500">Aucune soumission en attente.</div>
+            )}
           </div>
 
           <motion.button
@@ -207,6 +254,9 @@ export const TeacherDashboard = () => {
                   <span className="text-xs text-gray-500">{activity.time}</span>
                 </motion.div>
               ))}
+              {recentActivity.length === 0 && !loading && (
+                <div className="text-sm text-gray-500">Aucune activité récente.</div>
+              )}
             </div>
           </div>
         </motion.div>
@@ -218,37 +268,7 @@ export const TeacherDashboard = () => {
             Top Étudiants
           </h2>
           <div className="space-y-4">
-            {topStudents.map((student, index) => (
-              <motion.div
-                key={student.id}
-                whileHover={{ scale: 1.02 }}
-                className="relative p-4 bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl border-2 border-yellow-200"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="text-3xl">{student.avatar}</div>
-                    <div className={`absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                      index === 0 ? 'bg-yellow-400 text-yellow-900' :
-                      index === 1 ? 'bg-gray-300 text-gray-700' :
-                      'bg-orange-300 text-orange-900'
-                    }`}>
-                      {index + 1}
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-gray-900">{student.name}</h3>
-                    <div className="flex items-center gap-3 text-sm mt-1">
-                      <span className="text-yellow-700 font-semibold">
-                        {student.points} pts
-                      </span>
-                      <span className="text-gray-600">
-                        {student.missions} missions
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+            <div className="text-sm text-gray-500">Classement étudiants indisponible.</div>
           </div>
 
           <motion.button
@@ -265,16 +285,16 @@ export const TeacherDashboard = () => {
             <h3 className="font-bold text-gray-900 mb-3">Statistiques Rapides</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">Score Moyen:</span>
-                <span className="font-bold text-blue-600">{stats.averageScore}%</span>
+                <span className="text-gray-600">Utilisateurs actifs (30j):</span>
+                <span className="font-bold text-blue-600">{activeStudents}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Taux de Réussite:</span>
-                <span className="font-bold text-green-600">{stats.completionRate}%</span>
+                <span className="text-gray-600">Missions listées:</span>
+                <span className="font-bold text-green-600">{totalMissions}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Étudiants Actifs:</span>
-                <span className="font-bold text-purple-600">{stats.activeStudents}/{stats.totalStudents}</span>
+                <span className="text-gray-600">Soumissions en attente:</span>
+                <span className="font-bold text-purple-600">{pendingSubmissions}</span>
               </div>
             </div>
           </div>
