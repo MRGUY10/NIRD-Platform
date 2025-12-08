@@ -31,6 +31,7 @@ export const TeamPage = () => {
   const [team, setTeam] = useState<TeamWithMembers | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [inviteUserId, setInviteUserId] = useState<string>('');
 
   // Fetch team data from backend
   useEffect(() => {
@@ -68,7 +69,8 @@ export const TeamPage = () => {
     if (!confirm('Êtes-vous sûr de vouloir quitter cette équipe ?')) return;
     
     try {
-      await teamService.leaveTeam();
+      if (!team || !user?.id) return;
+      await teamService.removeMember(team.id, user.id);
       setTeam(null);
     } catch (err) {
       alert(getErrorMessage(err));
@@ -121,7 +123,16 @@ export const TeamPage = () => {
 
   // No team state
   if (!team) {
-    return <NoTeamView onCreateTeam={() => setShowCreateModal(true)} onJoinTeam={() => setShowJoinModal(true)} />;
+    return (
+      <>
+        <NoTeamView onCreateTeam={() => setShowCreateModal(true)} onJoinTeam={() => setShowJoinModal(true)} />
+        {/* Modals */}
+        <AnimatePresence>
+          {showCreateModal && <CreateTeamModal onClose={() => setShowCreateModal(false)} />}
+          {showJoinModal && <JoinTeamModal onClose={() => setShowJoinModal(false)} />}
+        </AnimatePresence>
+      </>
+    );
   }
 
   return (
@@ -226,14 +237,35 @@ export const TeamPage = () => {
             <Users className="w-6 h-6 text-blue-600" />
             Membres de l'Équipe
           </h2>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
-          >
-            <UserPlus className="w-5 h-5" />
-            Inviter
-          </motion.button>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={inviteUserId}
+              onChange={(e) => setInviteUserId(e.target.value)}
+              placeholder="ID utilisateur"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            />
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={async () => {
+                if (!team) return;
+                const uid = parseInt(inviteUserId, 10);
+                if (!uid) return alert('ID utilisateur invalide');
+                try {
+                  await teamService.addMember(team.id, { user_id: uid });
+                  alert('Membre ajouté');
+                  window.location.reload();
+                } catch (err) {
+                  alert(getErrorMessage(err));
+                }
+              }}
+              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+            >
+              <UserPlus className="w-5 h-5" />
+              Inviter
+            </motion.button>
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -275,6 +307,23 @@ export const TeamPage = () => {
                   <p className="text-sm text-gray-500">
                     Membre depuis {new Date(member.created_at).toLocaleDateString('fr-FR')}
                   </p>
+                  {user?.id !== member.id && (
+                    <button
+                      onClick={async () => {
+                        if (!team) return;
+                        if (!confirm(`Retirer ${member.full_name || member.username} de l'équipe ?`)) return;
+                        try {
+                          await teamService.removeMember(team.id, member.id);
+                          window.location.reload();
+                        } catch (err) {
+                          alert(getErrorMessage(err));
+                        }
+                      }}
+                      className="mt-2 px-3 py-1 text-xs bg-red-100 text-red-700 rounded"
+                    >
+                      Retirer
+                    </button>
+                  )}
                 </div>
               </motion.div>
             );
@@ -396,11 +445,21 @@ interface CreateTeamModalProps {
 const CreateTeamModal = ({ onClose }: CreateTeamModalProps) => {
   const [teamName, setTeamName] = useState('');
   const [description, setDescription] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleCreate = () => {
-    console.log('Creating team:', { teamName, description });
-    // API call will go here
-    onClose();
+  const handleCreate = async () => {
+    if (!teamName.trim()) return;
+    try {
+      setSubmitting(true);
+      await teamService.createTeam({ name: teamName.trim(), description: description.trim() || undefined });
+      onClose();
+      // Optional: reload to refresh my team state
+      window.location.reload();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -468,10 +527,10 @@ const CreateTeamModal = ({ onClose }: CreateTeamModalProps) => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleCreate}
-              disabled={!teamName.trim()}
+              disabled={!teamName.trim() || submitting}
               className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Créer l'Équipe
+              {submitting ? 'Création...' : "Créer l'Équipe"}
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.02 }}
@@ -495,10 +554,11 @@ interface JoinTeamModalProps {
 
 const JoinTeamModal = ({ onClose }: JoinTeamModalProps) => {
   const [teamCode, setTeamCode] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleJoin = () => {
-    console.log('Joining team with code:', teamCode);
-    // API call will go here
+  const handleJoin = async () => {
+    // Backend requires captain/admin to add member by user_id.
+    alert("Pour rejoindre une équipe, demandez à votre capitaine de vous ajouter depuis l'équipe. Le code d'équipe sert à l'invitation, pas à une auto‑inscription.");
     onClose();
   };
 
@@ -555,7 +615,7 @@ const JoinTeamModal = ({ onClose }: JoinTeamModalProps) => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleJoin}
-              disabled={!teamCode.trim()}
+              disabled={!teamCode.trim() || submitting}
               className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Rejoindre l'Équipe

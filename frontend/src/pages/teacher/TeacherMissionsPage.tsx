@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Target,
@@ -15,8 +15,12 @@ import {
   Filter,
   Search,
   X,
+  Loader,
+  AlertCircle,
 } from 'lucide-react';
 import { MissionDifficulty } from '../../types';
+import { missionService } from '../../services/missionService';
+import { getErrorMessage } from '../../lib/api-client';
 
 // Types
 interface TeacherMission {
@@ -41,6 +45,9 @@ const TeacherMissionsPage = () => {
   const [selectedMission, setSelectedMission] = useState<TeacherMission | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [missions, setMissions] = useState<any[]>([]);
 
   // Form states
   const [formTitle, setFormTitle] = useState('');
@@ -49,109 +56,66 @@ const TeacherMissionsPage = () => {
   const [formPoints, setFormPoints] = useState(100);
   const [formDeadline, setFormDeadline] = useState('');
   const [formCategory, setFormCategory] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Mock data - Teacher's Missions
-  const missions: TeacherMission[] = [
-    {
-      id: 1,
-      title: 'Recycler 5 Téléphones Portables',
-      description: 'Collectez et apportez 5 téléphones portables usagés au centre de recyclage.',
-      difficulty: MissionDifficulty.EASY,
-      points: 100,
-      deadline: '2025-12-31',
-      categoryId: 1,
-      categoryName: 'Collecte',
-      status: 'active',
-      totalSubmissions: 45,
-      pendingReviews: 12,
-      completedSubmissions: 28,
-      createdAt: '2025-11-01',
-    },
-    {
-      id: 2,
-      title: 'Créer une Affiche de Sensibilisation',
-      description: 'Créez une affiche créative pour sensibiliser aux dangers des e-déchets.',
-      difficulty: MissionDifficulty.MEDIUM,
-      points: 200,
-      deadline: '2025-12-25',
-      categoryId: 2,
-      categoryName: 'Sensibilisation',
-      status: 'active',
-      totalSubmissions: 32,
-      pendingReviews: 8,
-      completedSubmissions: 20,
-      createdAt: '2025-11-05',
-    },
-    {
-      id: 3,
-      title: 'Organiser un Atelier de Réparation',
-      description: 'Organisez un atelier pour apprendre à réparer de vieux appareils électroniques.',
-      difficulty: MissionDifficulty.HARD,
-      points: 500,
-      deadline: '2026-01-15',
-      categoryId: 3,
-      categoryName: 'Événements',
-      status: 'active',
-      totalSubmissions: 8,
-      pendingReviews: 3,
-      completedSubmissions: 4,
-      createdAt: '2025-11-10',
-    },
-    {
-      id: 4,
-      title: 'Enquête sur les E-Déchets dans Votre Quartier',
-      description: 'Menez une enquête auprès de 20 personnes sur leurs habitudes de recyclage.',
-      difficulty: MissionDifficulty.MEDIUM,
-      points: 250,
-      deadline: '2025-12-20',
-      categoryId: 4,
-      categoryName: 'Recherche',
-      status: 'active',
-      totalSubmissions: 18,
-      pendingReviews: 5,
-      completedSubmissions: 10,
-      createdAt: '2025-11-12',
-    },
-    {
-      id: 5,
-      title: 'Mission Test - Brouillon',
-      description: 'Ceci est une mission en cours de création.',
-      difficulty: MissionDifficulty.EASY,
-      points: 50,
-      deadline: '2025-12-30',
-      categoryId: 1,
-      categoryName: 'Collecte',
-      status: 'draft',
-      totalSubmissions: 0,
-      pendingReviews: 0,
-      completedSubmissions: 0,
-      createdAt: '2025-11-28',
-    },
-    {
-      id: 6,
-      title: 'Ancienne Mission - Archivée',
-      description: 'Mission terminée et archivée.',
-      difficulty: MissionDifficulty.MEDIUM,
-      points: 150,
-      deadline: '2025-10-31',
-      categoryId: 2,
-      categoryName: 'Sensibilisation',
-      status: 'archived',
-      totalSubmissions: 52,
-      pendingReviews: 0,
-      completedSubmissions: 52,
-      createdAt: '2025-09-01',
-    },
-  ];
+  // Load missions from backend
+  useEffect(() => {
+    const loadMissions = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await missionService.listMissions({ is_active: undefined });
+        setMissions(data);
+      } catch (err) {
+        setError(getErrorMessage(err));
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadMissions();
+  }, []);
 
-  // Filter missions
+  // Filter missions (backend missions have is_active instead of status)
   const filteredMissions = missions.filter((mission) => {
     const matchesSearch =
       mission.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       mission.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = selectedStatus === 'all' || mission.status === selectedStatus;
+    // Map is_active to status for filtering
+    const missionStatus = mission.is_active ? 'active' : 'archived';
+    const matchesStatus = selectedStatus === 'all' || missionStatus === selectedStatus;
     return matchesSearch && matchesStatus;
   });
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Chargement des missions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Erreur de chargement</h2>
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Get difficulty label
   const getDifficultyLabel = (difficulty: MissionDifficulty) => {
@@ -210,23 +174,65 @@ const TeacherMissionsPage = () => {
   };
 
   // Handle create mission
-  const handleCreateMission = () => {
-    console.log('Creating mission:', { formTitle, formDescription, formDifficulty, formPoints, formDeadline, formCategory });
-    setShowCreateModal(false);
-    resetForm();
+  const handleCreateMission = async () => {
+    if (!formTitle.trim()) return;
+    try {
+      setSubmitting(true);
+      await missionService.createMission({
+        title: formTitle.trim(),
+        description: formDescription.trim(),
+        difficulty: formDifficulty,
+        points: formPoints,
+        // category_id is optional - skip it if categories aren't seeded yet
+        requires_photo: false,
+        requires_file: false,
+        requires_description: true,
+      });
+      setShowCreateModal(false);
+      resetForm();
+      // Reload missions
+      const data = await missionService.listMissions({ is_active: undefined });
+      setMissions(data);
+    } catch (err) {
+      alert(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Handle edit mission
-  const handleEditMission = () => {
-    console.log('Editing mission:', selectedMission?.id);
-    setShowEditModal(false);
-    resetForm();
+  const handleEditMission = async () => {
+    if (!selectedMission || !formTitle.trim()) return;
+    try {
+      setSubmitting(true);
+      await missionService.updateMission(selectedMission.id, {
+        title: formTitle.trim(),
+        description: formDescription.trim(),
+        difficulty: formDifficulty,
+        points: formPoints,
+      });
+      setShowEditModal(false);
+      resetForm();
+      // Reload missions
+      const data = await missionService.listMissions({ is_active: undefined });
+      setMissions(data);
+    } catch (err) {
+      alert(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Handle delete mission
-  const handleDeleteMission = (missionId: number) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette mission?')) {
-      console.log('Deleting mission:', missionId);
+  const handleDeleteMission = async (missionId: number) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette mission?')) return;
+    try {
+      await missionService.deleteMission(missionId);
+      // Reload missions
+      const data = await missionService.listMissions({ is_active: undefined });
+      setMissions(data);
+    } catch (err) {
+      alert(getErrorMessage(err));
     }
   };
 

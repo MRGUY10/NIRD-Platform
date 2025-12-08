@@ -25,7 +25,7 @@ class MissionBase(BaseModel):
 
 class MissionCreate(MissionBase):
     """Schema for creating a mission"""
-    category_id: int
+    category_id: Optional[int] = None
     difficulty: MissionDifficulty = MissionDifficulty.MEDIUM
     points: int = Field(..., ge=0)
     requires_photo: bool = False

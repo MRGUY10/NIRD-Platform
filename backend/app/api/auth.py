@@ -19,7 +19,7 @@ from app.core.security import (
 )
 from app.core.dependencies import get_current_user, get_current_active_user
 from app.models.user import User, UserRole
-from app.schemas.user import UserCreate, UserResponse
+from app.schemas.user import UserCreate, UserResponse, UserUpdate, PasswordChange
 from app.schemas.auth import Token, TokenData, RefreshTokenRequest
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -262,3 +262,62 @@ async def verify_token_endpoint(
         "email": current_user.email,
         "role": current_user.role.value
     }
+
+
+@router.put("/me", response_model=UserResponse)
+async def update_profile(
+    profile_data: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update current user's profile.
+    
+    - **full_name**: Update full name
+    - **email**: Update email (must be unique)
+    - **avatar_url**: Update avatar URL
+    """
+    # Check if email is being changed and if it's already taken
+    if profile_data.email and profile_data.email != current_user.email:
+        existing_email = db.query(User).filter(User.email == profile_data.email).first()
+        if existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+    
+    # Update fields
+    update_data = profile_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(current_user, field, value)
+    
+    db.commit()
+    db.refresh(current_user)
+    
+    return current_user
+
+
+@router.post("/change-password")
+async def change_password(
+    password_data: PasswordChange,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Change current user's password.
+    
+    - **current_password**: Current password for verification
+    - **new_password**: New password (min 8 characters)
+    """
+    # Verify current password
+    if not verify_password(password_data.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+    
+    # Hash and update new password
+    current_user.hashed_password = get_password_hash(password_data.new_password)
+    db.commit()
+    
+    return {"message": "Password updated successfully"}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileCheck,
@@ -16,8 +16,12 @@ import {
   Target,
   Award,
   MessageSquare,
+  Loader,
+  AlertCircle,
 } from 'lucide-react';
 import { MissionDifficulty } from '../../types';
+import { submissionService } from '../../services/missionService';
+import { getErrorMessage } from '../../lib/api-client';
 
 // Types
 interface Submission {
@@ -38,11 +42,32 @@ interface Submission {
 const TeacherSubmissionsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
-  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+  const [selectedSubmission, setSelectedSubmission] = useState<any | null>(null);
   const [feedbackText, setFeedbackText] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Mock data - Submissions
-  const submissions: Submission[] = [
+  // Load submissions from backend
+  useEffect(() => {
+    const loadSubmissions = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await submissionService.listSubmissions({});
+        setSubmissions(data);
+      } catch (err) {
+        setError(getErrorMessage(err));
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSubmissions();
+  }, []);
+
+  // Mock data kept for fallback - Submissions
+  const mockSubmissions: Submission[] = [
     {
       id: 1,
       studentName: 'Marie Dubois',
@@ -213,17 +238,49 @@ const TeacherSubmissionsPage = () => {
   };
 
   // Handle approve submission
-  const handleApprove = () => {
-    console.log('Approving submission:', selectedSubmission?.id, 'Feedback:', feedbackText);
-    setSelectedSubmission(null);
-    setFeedbackText('');
+  const handleApprove = async () => {
+    if (!selectedSubmission) return;
+    try {
+      setSubmitting(true);
+      await submissionService.reviewSubmission(selectedSubmission.id, {
+        status: 'approved',
+        feedback: feedbackText.trim() || undefined,
+      });
+      setSelectedSubmission(null);
+      setFeedbackText('');
+      // Reload submissions
+      const data = await submissionService.listSubmissions({});
+      setSubmissions(data);
+    } catch (err) {
+      alert(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Handle reject submission
-  const handleReject = () => {
-    console.log('Rejecting submission:', selectedSubmission?.id, 'Feedback:', feedbackText);
-    setSelectedSubmission(null);
-    setFeedbackText('');
+  const handleReject = async () => {
+    if (!selectedSubmission) return;
+    if (!feedbackText.trim()) {
+      alert('Veuillez fournir un commentaire pour le rejet');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await submissionService.reviewSubmission(selectedSubmission.id, {
+        status: 'rejected',
+        feedback: feedbackText.trim(),
+      });
+      setSelectedSubmission(null);
+      setFeedbackText('');
+      // Reload submissions
+      const data = await submissionService.listSubmissions({});
+      setSubmissions(data);
+    } catch (err) {
+      alert(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Animation variants
@@ -241,6 +298,37 @@ const TeacherSubmissionsPage = () => {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader className="w-12 h-12 text-orange-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Chargement des soumissions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Erreur de chargement</h2>
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-700"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-yellow-50">

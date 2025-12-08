@@ -22,6 +22,7 @@ import LeaderboardPage from './pages/leaderboard/LeaderboardPage';
 import BadgesPage from './pages/badges/BadgesPage';
 import ResourcesPage from './pages/resources/ResourcesPage';
 import ForumPage from './pages/forum/ForumPage';
+import ProfilePage from './pages/profile/ProfilePage';
 import TeacherMissionsPage from './pages/teacher/TeacherMissionsPage';
 import TeacherStudentsPage from './pages/teacher/TeacherStudentsPage';
 import TeacherSubmissionsPage from './pages/teacher/TeacherSubmissionsPage';
@@ -81,6 +82,7 @@ function App() {
             <Route path="/badges" element={<BadgesPage />} />
             <Route path="/resources" element={<ResourcesPage />} />
             <Route path="/forum" element={<ForumPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             
             {/* Teacher Routes */}
             <Route path="/teacher/missions" element={<TeacherMissionsPage />} />

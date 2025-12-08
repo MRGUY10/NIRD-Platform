@@ -128,8 +128,8 @@ async def create_mission(
             detail="Mission title already exists"
         )
     
-    # Verify category exists
-    if mission_data.category_id:
+    # Verify category exists (only if provided)
+    if mission_data.category_id is not None:
         category = db.query(Category).filter(
             Category.id == mission_data.category_id
         ).first()

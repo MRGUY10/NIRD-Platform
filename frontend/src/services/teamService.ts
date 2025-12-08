@@ -40,6 +40,19 @@ export const teamService = {
   },
 
   /**
+   * Add a member to the team (captain/admin only)
+   */
+  async addMember(teamId: number, data: { user_id: number; is_captain?: boolean }): Promise<{ message: string; user_id: number }> {
+    try {
+      const response = await apiClient.post(`/teams/${teamId}/members`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to add member:', getErrorMessage(error));
+      throw error;
+    }
+  },
+
+  /**
    * Get current user's team
    */
   async getMyTeam(): Promise<TeamWithMembers> {

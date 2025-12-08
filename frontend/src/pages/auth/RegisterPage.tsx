@@ -76,7 +76,9 @@ export const RegisterPage = () => {
   const onSubmit = async (data: RegisterForm) => {
     try {
       setError('');
-      const { confirmPassword, ...registerData } = data;
+      const { confirmPassword, school_id, ...registerData } = data;
+      // school_id should be a number or undefined, not a string
+      // For now, we don't send school_id since it requires selecting from existing schools
       await registerUser(registerData);
       navigate('/dashboard');
     } catch (err) {
@@ -333,50 +335,22 @@ export const RegisterPage = () => {
           </div>
         </motion.div>
 
-        {/* School Name (conditional) */}
+        {/* School info note for teachers */}
         {selectedRole === UserRole.TEACHER && (
           <motion.div
             variants={itemVariants}
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
+            className="p-4 bg-blue-50 border-2 border-blue-200 rounded-xl"
           >
-            <label htmlFor="school_name" className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-              <div className="flex items-center gap-1 px-2 py-1 bg-indigo-100 rounded-lg">
-                <School className="w-4 h-4 text-indigo-600" />
-                <span className="text-indigo-700">Nom de l'École</span>
+            <div className="flex items-start gap-3">
+              <School className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-blue-900">
+                <p className="font-semibold mb-1">Association à une école</p>
+                <p className="text-blue-700">Vous pourrez associer votre compte à une école après l'inscription depuis votre profil.</p>
               </div>
-            </label>
-            <div className="relative group">
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity blur"
-                whileHover={{ scale: 1.02 }}
-              />
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <motion.div whileHover={{ scale: 1.2, rotate: 10 }}>
-                  <School className="h-5 w-5 text-gray-400" />
-                </motion.div>
-              </div>
-              <input
-                {...register('school_id', {
-                  required: selectedRole === UserRole.TEACHER ? "Le nom de l'école est requis" : false,
-                })}
-                type="text"
-                id="school_id"
-                className="relative block w-full pl-12 pr-4 py-4 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-gray-900 placeholder-gray-400"
-                placeholder="Nom de votre école"
-              />
             </div>
-            {errors.school_id && (
-              <motion.p
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="mt-2 text-sm text-red-600 font-medium flex items-center gap-1"
-              >
-                <XCircle className="w-4 h-4" />
-                {errors.school_id.message}
-              </motion.p>
-            )}
           </motion.div>
         )}
 
